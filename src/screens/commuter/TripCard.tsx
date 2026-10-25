@@ -37,13 +37,13 @@ export function TripCard({ model, onExplain }: { model: TripModel; onExplain: ()
   const busAt = steps?.[2];
 
   return (
-    <section aria-label="Your trip" className="rounded-[22px] border border-[var(--line)] bg-[var(--surface)] shadow-lg">
+    <section aria-label="Your trip" className="rounded-t-[22px] border border-b-0 border-[var(--line)] bg-[var(--surface)] shadow-[0_-8px_24px_rgb(16_24_40_/_0.12)]">
       <button
         type="button"
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((o) => !o)}
-        className="flex min-h-14 w-full items-center gap-3 px-3.5 py-2.5 text-left"
+        className="flex min-h-12 w-full items-center gap-2.5 px-3.5 py-2.5 text-left"
       >
         <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[var(--tone-bg)] text-[var(--tone-fg)]" aria-hidden>
           <BusFront size={18} />
@@ -68,14 +68,14 @@ export function TripCard({ model, onExplain }: { model: TripModel; onExplain: ()
       </button>
 
       {open && (
-        <div id={panelId} className="px-4 pb-3">
+        <div id={panelId} className="px-3.5 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
           {steps && (
-            <ol className="grid grid-cols-3 gap-2 border-t border-[var(--line)] pt-3">
+            <ol className="grid grid-cols-3 gap-0 border-t border-[var(--line)] pt-3">
               {steps.map((s, i) => (
-                <li key={s.label}>
-                  <div className="flex items-center gap-1" aria-hidden>
+                <li key={s.label} className="min-w-0 pr-2 last:pr-0">
+                  <div className="flex items-center" aria-hidden>
                     <span className="size-2 shrink-0 rounded-full bg-[var(--map-route)]" />
-                    {i < steps.length - 1 && <span className="h-0.5 flex-1 rounded-full bg-[var(--line)]" />}
+                    {i < steps.length - 1 && <span className="ml-0 h-0.5 flex-1 bg-[var(--line)]" />}
                   </div>
                   <p className="mt-1.5 text-base font-bold tabular-nums">{s.time}</p>
                   <p className="text-[0.8125rem] leading-snug text-[var(--ink-muted)]">{s.label}</p>

@@ -45,6 +45,8 @@ export interface Scene {
   slice: (from: number, to: number) => Projected[];
   ground: Shape[];
   streets: Street[];
+  /** Top street-name candidates; the map filters these to the visible view when zooming. */
+  streetLabelPool: StreetLabel[];
   streetLabels: StreetLabel[];
   /** Ground shadows, drawn as one translucent layer so overlaps don't darken. */
   shadows: string[];
@@ -279,10 +281,17 @@ export function buildScene(routeStops: Stop[], opts: SceneOptions): Scene {
   };
   const flat = (p: Vec2) => project({ ...p, z: 0 });
   const onScreen = (list: Vec2[], m = 30) => list.some((p) => p.x > -m && p.x < opts.width + m && p.y > -m * 2 && p.y < opts.height + m);
+  /** Loose bounds so pan/zoom can reveal streets outside the first frame. */
+  const PAN_MARGIN = 420;
   const bboxOnScreen = (list: Vec2[]) => {
     const lx = list.map((p) => p.x);
     const ly = list.map((p) => p.y);
-    return Math.max(...lx) > -20 && Math.min(...lx) < opts.width + 20 && Math.max(...ly) > -60 && Math.min(...ly) < opts.height + 20;
+    return (
+      Math.max(...lx) > -PAN_MARGIN &&
+      Math.min(...lx) < opts.width + PAN_MARGIN &&
+      Math.max(...ly) > -PAN_MARGIN &&
+      Math.min(...ly) < opts.height + PAN_MARGIN
+    );
   };
 
   const slice = (from: number, to: number): Projected[] => {
@@ -331,18 +340,19 @@ export function buildScene(routeStops: Stop[], opts: SceneOptions): Scene {
 
   const routeScreen = slice(0, Math.max(0, stopWorld.length - 1));
   const nearRoute = (p: Vec2) => routeScreen.some((q) => len(sub(p, q)) < 22);
-  const streetLabels: StreetLabel[] = [];
+  const streetLabelPool: StreetLabel[] = [];
   for (const [name, { a, b, l }] of [...labelCandidates].sort((x, y) => y[1].l - x[1].l)) {
     const text = shortName(name);
-    if (l < text.length * 5.6 + 24) continue;
+    if (l < text.length * 4.8 + 12) continue;
     const m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-    if (nearRoute(m) || streetLabels.some((o) => len(sub(o, m)) < 46)) continue;
+    if (streetLabelPool.some((o) => len(sub(o, m)) < 34)) continue;
     let angle = (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
     if (angle > 90) angle -= 180;
     if (angle < -90) angle += 180;
-    streetLabels.push({ ...m, angle, text });
-    if (streetLabels.length >= 6) break;
+    streetLabelPool.push({ ...m, angle, text });
+    if (streetLabelPool.length >= 28) break;
   }
+  const streetLabels = streetLabelPool.filter((l) => !nearRoute(l)).slice(0, 6);
 
   // Light comes from the screen's upper left; shadows fall to the lower right.
   const lightDir = norm({ x: -0.75 * cam.cb + -0.65 * cam.sb, y: 0.75 * cam.sb + -0.65 * cam.cb });
@@ -424,6 +434,7 @@ export function buildScene(routeStops: Stop[], opts: SceneOptions): Scene {
     slice,
     ground,
     streets,
+    streetLabelPool,
     streetLabels,
     shadows,
     city,

@@ -19,7 +19,7 @@ const CHIP_LABEL: Record<PlanB['kind'], string> = {
   ride_hail: 'Book a ride',
 };
 
-export function PlanBCard({ model }: { model: PlanBModel }) {
+export function PlanBCard({ model, flush = false }: { model: PlanBModel; flush?: boolean }) {
   const [override, setOverride] = useState<PlanB['kind'] | null>(null);
   const picked = override ?? model.kind;
   const isSuggested = picked === model.kind;
@@ -29,7 +29,11 @@ export function PlanBCard({ model }: { model: PlanBModel }) {
   return (
     <motion.section
       aria-labelledby="plan-b-title"
-      className="rounded-[22px] border border-[var(--line)] bg-[var(--surface)] p-3.5 shadow-lg"
+      className={
+        flush
+          ? 'rounded-t-[22px] border border-b-0 border-[var(--line)] bg-[var(--surface)] p-3.5 pb-[calc(0.875rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgb(16_24_40_/_0.12)]'
+          : 'rounded-[22px] border border-[var(--line)] bg-[var(--surface)] p-3.5 shadow-lg'
+      }
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 24 }}

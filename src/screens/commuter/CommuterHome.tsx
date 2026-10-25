@@ -24,6 +24,16 @@ import { resolveTripStub } from './tripStub';
 import { explainFor, heroFor, mapFor, metaFor, planBFor, tripFor, type ViewContext } from './view';
 
 const ROUTE = route as Route;
+/**
+ * BGC Bus runs several routes. This demo only has live leave-time math for North Route;
+ * the others show in the picker as "Coming soon" so the UI is honest.
+ */
+const ROUTES = [
+  { route_id: ROUTE.route_id, name: ROUTE.name, direction: ROUTE.direction, live: true },
+  { route_id: 'bgc-east', name: 'BGC Bus East Route', direction: 'toward Market! Market!', live: false },
+  { route_id: 'bgc-west', name: 'BGC Bus West Route', direction: 'toward McKinley Hill', live: false },
+  { route_id: 'bgc-central', name: 'BGC Bus Central Route', direction: 'toward High Street', live: false },
+];
 const TOAST_MS = 4000;
 /** Space between the floating card and the route drawn above it. */
 const OVERLAY_GAP = 8;
@@ -63,6 +73,7 @@ export function CommuterScreen({ plan, buses, forceOffline, onPickStop, trip, to
   useNow(1000);
   const online = useOnline();
   const [explainOpen, setExplainOpen] = useState(false);
+  const [routeId, setRouteId] = useState(ROUTE.route_id);
   const [overlayRef, overlayHeight] = useElementHeight<HTMLDivElement>();
 
   // Mock mode syncs tabs with no network, so being offline only matters for live data.
@@ -93,7 +104,13 @@ export function CommuterScreen({ plan, buses, forceOffline, onPickStop, trip, to
         <div data-tone={hero.tone} className="tone-backdrop mx-auto flex min-h-dvh w-full max-w-[430px] flex-col">
           {top}
           <section className="tone-surface">
-            <TripDropdown stops={ROUTE.stops} routeLabel={ROUTE.name.replace(/^BGC Bus\s+/, 'BGC Bus · ')} trip={trip} />
+            <TripDropdown
+              stops={ROUTE.stops}
+              routes={ROUTES}
+              routeId={routeId}
+              onPickRoute={setRouteId}
+              trip={trip}
+            />
             <Hero model={hero} fresh={meta?.fresh ?? null} onExplain={() => setExplainOpen(true)} />
           </section>
 
@@ -102,18 +119,22 @@ export function CommuterScreen({ plan, buses, forceOffline, onPickStop, trip, to
             style={{ minHeight: MAP_MIN_ROUTE + overlayHeight + OVERLAY_GAP }}
           >
             <RouteMap3D stops={ROUTE.stops} model={map} pulse={takeover} insetBottom={overlayHeight + OVERLAY_GAP} />
-            {/* One card floats over the lower map: the stop picker, Plan B when needed, or the trip timeline. */}
-            <div ref={overlayRef} className="absolute inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+12px)] z-20">
+            {/* Flush to the bottom edge: stop picker, Plan B when needed, or the trip timeline. */}
+            <div ref={overlayRef} className="pointer-events-none absolute inset-x-0 bottom-0 z-20">
               <AnimatePresence mode="wait">
                 {hero.state === 'location_off' ? (
-                  <section key="pick" className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4 shadow-lg">
+                  <section key="pick" className="pointer-events-auto rounded-t-[22px] border border-b-0 border-[var(--line)] bg-[var(--surface)] p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgb(16_24_40_/_0.12)]">
                     <h2 className="mb-3 text-[1.0625rem] font-bold">Which stop do you walk to?</h2>
                     <StopPicker stops={ROUTE.stops} onPick={onPickStop} label="Pick your stop" />
                   </section>
                 ) : planB ? (
-                  <PlanBCard key={`${planB.kind}-${planB.reason}`} model={planB} />
+                  <div key={`${planB.kind}-${planB.reason}`} className="pointer-events-auto px-0">
+                    <PlanBCard model={planB} flush />
+                  </div>
                 ) : (
-                  <TripCard key="trip" model={tripCard} onExplain={() => setExplainOpen(true)} />
+                  <div key="trip" className="pointer-events-auto">
+                    <TripCard model={tripCard} onExplain={() => setExplainOpen(true)} />
+                  </div>
                 )}
               </AnimatePresence>
             </div>

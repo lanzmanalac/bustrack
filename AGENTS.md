@@ -757,3 +757,17 @@ Crowd chip: "Seats likely · 2 riders reported", "Busy · 5 riders reported", "L
 - [ ] **Codex log** started: everyone posts 2–3 notable Codex moments with screenshots (feeds the 25% AI score).
 - [ ] App name (ideas: "Alis Na", "Sakto"; check that the name isn't already taken).
 - [ ] Who presents, and who plays the driver.
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues on `lanzmanalac/bustrack` (via `gh`). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default labels: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: root `GLOSSARY.md` + `docs/adr/`. See `docs/agents/domain.md`.

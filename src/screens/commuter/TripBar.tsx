@@ -162,7 +162,11 @@ export function TripBar({ stops, intent, verdict, pending, onSubmit, onPickStop,
           setUserPicked(false);
           onSubmit(value);
         }}
-        className="flex h-14 items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] pr-2 pl-4 shadow-sm focus-within:border-[var(--focus)]"
+        className={
+          inline
+            ? 'flex h-12 items-center gap-2 rounded-xl bg-[var(--page-bg)] pr-1.5 pl-3 focus-within:ring-2 focus-within:ring-[var(--focus)]'
+            : 'flex h-14 items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--surface)] pr-2 pl-4 shadow-sm focus-within:border-[var(--focus)]'
+        }
       >
         <Sparkles size={18} className="shrink-0 text-[#4f46e5]" aria-hidden />
         <label htmlFor={inputId} className="sr-only">
