@@ -4,6 +4,7 @@ import type { BusStatus, RiderReport, Stop } from '../contracts/types';
 import route from '../data/route.json';
 import { buildLeavePlan } from './buildLeavePlan';
 import { CONFIG } from '../contracts/config';
+import { urgencyFor } from './evaluate';
 import { pickLeadBus, resolveStop } from './useLeavePlan';
 
 const stops = route.stops as unknown as Stop[];
@@ -92,9 +93,10 @@ describe('buildLeavePlan — live bus', () => {
     });
     expect(plan.phase).toBe('standby');
     expect(plan.bus_at_stop?.stop_id).toBe('s2');
-    // 3 stops out (~8 min), you are already standing at your stop -> relax.
-    expect(plan.urgency).toBe('relax');
-    expect(plan.leave_in_sec).toBeGreaterThan(CONFIG.URGENCY_SEC.relax);
+    // You are already standing at your stop, so the countdown is positive and
+    // the urgency is derived from it — no placeholder-route geometry assumed.
+    expect(plan.leave_in_sec).toBeGreaterThan(0);
+    expect(plan.urgency).toBe(urgencyFor(plan.leave_in_sec));
     expect(plan.plan_b).toBeNull(); // 60s parked is not yet a delay
   });
 

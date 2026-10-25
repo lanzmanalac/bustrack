@@ -2,11 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import type { BusStatus, LatLng, LeavePlan, RiderReport, Stop } from '../contracts/types';
 import { CONFIG } from '../contracts/config';
 import route from '../data/route.json';
-import type { DataAdapter } from './adapterContract';
+import type { DataAdapter } from '../data/adapter';
+import { data as defaultAdapter } from '../data/adapter';
 import { buildLeavePlan } from './buildLeavePlan';
 import { busEtaSeconds } from './eta';
 import { haversineMeters } from './geo';
-import { createLocalAdapter } from './localAdapter';
 import { initialLocation, isDemoMode, watchLocation, type LocationState } from './location';
 
 const TICK_MS = 1000;
@@ -16,7 +16,8 @@ const ROUTE_STOPS = route.stops as unknown as Stop[];
 
 export interface UseLeavePlanOptions {
   /**
-   * Defaults to a temporary local adapter. Swap for Backend 1's export:
+   * Defaults to Backend 1's `data` export, which honours CONFIG.DATA_MODE
+   * (mock vs live). Pass your own to inject a fixture adapter in tests:
    *   useLeavePlan({ adapter: data })
    */
   adapter?: DataAdapter;
@@ -47,10 +48,9 @@ export interface LeavePlanResult {
 }
 
 export function useLeavePlan(options: UseLeavePlanOptions = {}): LeavePlanResult {
-  const [fallbackAdapter] = useState<DataAdapter | null>(() =>
-    options.adapter ? null : createLocalAdapter(),
-  );
-  const adapter = options.adapter ?? (fallbackAdapter as DataAdapter);
+  // `defaultAdapter` is a module-level singleton, so its identity is stable
+  // across renders without needing an extra useState.
+  const adapter = options.adapter ?? defaultAdapter;
 
   const [buses, setBuses] = useState<BusStatus[]>([]);
   const [reports, setReports] = useState<RiderReport[]>([]);

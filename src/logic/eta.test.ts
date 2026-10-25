@@ -115,10 +115,15 @@ describe('dataAgeSeconds', () => {
   });
 });
 
-describe('haversine sanity for the placeholder route', () => {
-  it('legs are roughly evenly spaced', () => {
+describe('haversine sanity for the real route', () => {
+  it('every leg is a real distance and the route is a plausible length', () => {
     const gaps = stops.slice(0, -1).map((s, i) => haversineMeters(s, stops[i + 1]));
-    expect(Math.min(...gaps)).toBeGreaterThan(300);
-    expect(Math.max(...gaps)).toBeLessThan(900);
+    // Real stops are NOT evenly spaced (70m up to 2100m), but no leg can be
+    // zero-length and the whole route must be walkable/transitable BGC scale.
+    expect(gaps).toHaveLength(stops.length - 1);
+    expect(Math.min(...gaps)).toBeGreaterThan(1);
+    const total = gaps.reduce((sum, g) => sum + g, 0);
+    expect(total).toBeGreaterThan(500);
+    expect(total).toBeLessThan(10_000);
   });
 });
