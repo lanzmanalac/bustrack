@@ -81,6 +81,10 @@
   --map-route: #7b8494;
 }
 
+.tone-backdrop {
+  background-color: var(--tone-bg);
+  transition: background-color 400ms ease;
+}
 .tone-surface {
   background-color: var(--tone-bg);
   color: var(--tone-fg);
@@ -93,32 +97,28 @@
   outline-offset: -2px;
 }
 
-/* The hero's urgency color bleeds into the top of the map, so the two read as one scene. */
-.route-map__sky {
-  position: absolute;
-  inset: 0 0 auto;
-  height: 96px;
-  pointer-events: none;
-  background-color: var(--tone-bg);
-  mask-image: linear-gradient(to bottom, #000 0%, rgb(0 0 0 / 0.55) 35%, transparent 100%);
-  transition: background-color 400ms ease;
-}
 .route-map[data-stale='true'] svg {
   filter: saturate(0.3);
   opacity: 0.88;
 }
+.map-pill rect {
+  fill: #ffffff;
+  filter: drop-shadow(0 1px 2px rgb(16 24 40 / 0.18));
+}
+.map-pill[data-dark='true'] rect {
+  fill: var(--ink);
+}
 .map-label {
   font-family: var(--font-ui);
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 700;
   fill: var(--ink);
-  paint-order: stroke;
-  stroke: #ffffff;
-  stroke-width: 4px;
-  stroke-linejoin: round;
 }
 .map-label--strong {
-  font-size: 14px;
+  font-size: 13px;
+}
+.map-pill[data-dark='true'] .map-label {
+  fill: #ffffff;
 }
 
 .live-dot {

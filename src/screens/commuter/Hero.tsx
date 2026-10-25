@@ -41,8 +41,8 @@ export function Hero({ model, onExplain }: { model: HeroModel; onExplain: () => 
           <div className="font-display text-[clamp(2.75rem,13vw,3.75rem)] leading-[0.95] font-bold text-balance">{model.headline}</div>
         )}
 
-        <p className="mt-3 text-[1.0625rem] leading-snug font-medium text-[var(--tone-muted)]">{model.sub}</p>
-        <span className="mt-1.5 inline-flex items-center gap-0.5 text-sm font-semibold underline decoration-[var(--tone-accent)] decoration-2 underline-offset-4">
+        <p className="mt-2.5 text-base leading-snug font-medium text-pretty text-[var(--tone-muted)]">{model.sub}</p>
+        <span className="mt-1.5 inline-flex items-center gap-0.5 text-[0.8125rem] font-semibold text-[var(--tone-muted)] underline decoration-[var(--tone-accent)] decoration-2 underline-offset-4">
           How we worked this out
           <ChevronRight size={16} aria-hidden />
         </span>
@@ -58,7 +58,7 @@ export function Hero({ model, onExplain }: { model: HeroModel; onExplain: () => 
 export function HeroMeta({ model }: { model: MetaModel }) {
   const { fresh, crowd } = model;
   return (
-    <p className="flex flex-wrap gap-x-4 gap-y-1 px-5 pb-4 text-[0.8125rem] font-semibold text-[var(--tone-muted)]">
+    <p className="flex flex-wrap gap-x-4 gap-y-1 px-5 pb-8 text-[0.8125rem] font-semibold text-[var(--tone-muted)]">
       <span className="inline-flex items-center gap-1.5">
         {fresh.live ? (
           <span className="live-dot size-2 rounded-full bg-current" aria-hidden />

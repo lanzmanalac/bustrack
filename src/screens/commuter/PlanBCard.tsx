@@ -11,6 +11,14 @@ const KIND_ICON: Record<PlanB['kind'], LucideIcon> = {
   ride_hail: CarTaxiFront,
 };
 
+/** Short enough that all three alternatives fit on one row. */
+const CHIP_LABEL: Record<PlanB['kind'], string> = {
+  wait: 'Keep waiting',
+  next_bus: 'Next bus',
+  walk: 'Walk',
+  ride_hail: 'Book a ride',
+};
+
 export function PlanBCard({ model }: { model: PlanBModel }) {
   const [override, setOverride] = useState<PlanB['kind'] | null>(null);
   const picked = override ?? model.kind;
@@ -21,14 +29,14 @@ export function PlanBCard({ model }: { model: PlanBModel }) {
   return (
     <motion.section
       aria-labelledby="plan-b-title"
-      className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4 shadow-lg"
+      className="rounded-[22px] border border-[var(--line)] bg-[var(--surface)] p-3.5 shadow-lg"
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 24 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
     >
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-semibold tracking-wide text-[var(--ink-muted)] uppercase">Plan B · {model.reason}</p>
+      <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs font-bold tracking-wide text-[var(--ink-muted)] uppercase">Plan B · {model.reason}</p>
         {isSuggested && model.aiBadge && (
           <span className="inline-flex items-center gap-1 rounded-full bg-[#eef2ff] px-2.5 py-1 text-xs font-bold text-[#3730a3]">
             <Sparkles size={14} aria-hidden />
@@ -41,28 +49,27 @@ export function PlanBCard({ model }: { model: PlanBModel }) {
       </div>
 
       <div className="flex items-center gap-3">
-        <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[var(--page-bg)]">
-          <Icon size={24} aria-hidden />
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[var(--page-bg)]">
+          <Icon size={20} aria-hidden />
         </span>
-        <div>
-          <h2 id="plan-b-title" className="text-xl leading-tight font-bold">
+        <div className="min-w-0">
+          <h2 id="plan-b-title" className="text-lg leading-tight font-bold">
             {PLAN_B_LABEL[picked]}
+            {isSuggested && model.detail && <span className="font-semibold text-[var(--ink-muted)]"> · {model.detail}</span>}
           </h2>
-          {isSuggested && model.detail && <p className="text-base font-semibold text-[var(--ink-muted)]">{model.detail}</p>}
+          {isSuggested && <p className="mt-0.5 text-sm leading-snug text-[var(--ink-muted)]">{model.why}</p>}
         </div>
       </div>
 
-      {isSuggested && <p className="mt-2 text-[0.9375rem] leading-snug text-[var(--ink-muted)]">{model.why}</p>}
-
-      <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Other options">
+      <div className="mt-2.5 flex flex-wrap gap-1.5" role="group" aria-label="Other options">
         {others.map((kind) => (
           <button
             key={kind}
             type="button"
             onClick={() => setOverride(kind === model.kind ? null : kind)}
-            className="min-h-11 rounded-full border border-[var(--line)] px-4 text-[0.9375rem] font-semibold hover:bg-[var(--page-bg)]"
+            className="min-h-11 flex-1 rounded-full border border-[var(--line)] px-2 text-sm font-semibold whitespace-nowrap hover:bg-[var(--page-bg)]"
           >
-            {kind === model.kind ? `Back to: ${PLAN_B_LABEL[kind]}` : PLAN_B_LABEL[kind]}
+            {kind === model.kind ? `Back to: ${CHIP_LABEL[kind]}` : CHIP_LABEL[kind]}
           </button>
         ))}
       </div>

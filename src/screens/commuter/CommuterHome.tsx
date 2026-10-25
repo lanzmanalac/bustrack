@@ -87,7 +87,7 @@ export function CommuterScreen({ plan, buses, forceOffline, onPickStop, trip, to
   return (
     <MotionConfig reducedMotion="user">
       <div className="commuter min-h-dvh">
-        <div data-tone={hero.tone} className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col">
+        <div data-tone={hero.tone} className="tone-backdrop mx-auto flex min-h-dvh w-full max-w-[430px] flex-col">
           {top}
           <section className="tone-surface">
             <header className="flex items-baseline justify-between gap-3 px-5 pt-4 pb-1">
@@ -100,7 +100,7 @@ export function CommuterScreen({ plan, buses, forceOffline, onPickStop, trip, to
             {meta && <HeroMeta model={meta} />}
           </section>
 
-          <main className="relative -mb-[88px] flex flex-1" style={{ minHeight: MAP_MIN_ROUTE + MAP_INSET_BOTTOM + overlayHeight }}>
+          <main className="relative -mt-5 -mb-[88px] flex flex-1 overflow-hidden rounded-t-[26px] bg-[#f3f4f0]" style={{ minHeight: MAP_MIN_ROUTE + MAP_INSET_BOTTOM + overlayHeight }}>
             <RouteMap3D stops={ROUTE.stops} model={map} pulse={takeover} insetBottom={MAP_INSET_BOTTOM + overlayHeight} />
             {/* Plan B and the stop picker float over the lower map, just above the trip bar. */}
             <div ref={overlayRef} className="absolute inset-x-3 z-20 bottom-[76px]">

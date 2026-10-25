@@ -50,14 +50,14 @@ const PAD_X = 40;
 const BLOCK = { u: 15, v: 19, street: 6 };
 
 const COLOR = {
-  street: '#eef0ec',
-  lot: '#e2e5df',
-  park: '#cfe3c6',
+  street: '#f3f4f0',
+  lot: '#e9ece6',
+  park: '#d5e8cc',
   trees: ['#a6cc9b', '#8fbf86', '#b3d4a8'],
   top: [251, 252, 253] as const,
-  lit: [233, 237, 242] as const,
-  shade: [196, 205, 216] as const,
-  haze: [238, 241, 244] as const,
+  lit: [238, 241, 244] as const,
+  shade: [212, 218, 226] as const,
+  haze: [242, 244, 246] as const,
 };
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
@@ -215,7 +215,7 @@ export function buildScene(routeStops: Stop[], opts: SceneOptions): Scene {
       if (!onScreen(projected)) continue;
 
       const seed = i * 73.13 + j * 179.7;
-      const park = hash(seed) < 0.14;
+      const park = hash(seed) < 0.2;
       ground.push({ points: poly(corners.map((p) => ({ ...p, z: 0 }))), fill: park ? COLOR.park : COLOR.lot });
 
       if (park) {
@@ -244,8 +244,7 @@ export function buildScene(routeStops: Stop[], opts: SceneOptions): Scene {
         ];
         const r = hash(seed + 3 + n * 5);
         const falloff = clamp((dRoad - 8) / 40, 0.16, 1);
-        let h = (5 + r ** 1.5 * 42) * falloff + 2.5;
-        if (hash(seed + 7 + n) > 0.9 && dRoad > 34) h *= 1.5;
+        const h = (3 + r ** 1.5 * 20) * falloff + 1.5;
         const depth = project({ ...toWorld((l0 + l1) / 2, b0 + BLOCK.v / 2), z: 0 }).depth;
         dMin = Math.min(dMin, depth);
         dMax = Math.max(dMax, depth);

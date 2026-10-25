@@ -18,6 +18,7 @@ export interface RouteMap3DProps {
 
 const INSET_TOP = 40;
 const BUS = { length: 10.5, width: 4.4, height: 4, lift: 0.4 };
+const ROUTE_INK = '#23303f';
 
 function useSize<T extends HTMLElement>() {
   const ref = useRef<T>(null);
@@ -144,12 +145,10 @@ function Overlay({ scene, names, model, pulse }: { scene: Scene; names: string[]
   const behind = hasBus ? routeSlice(scene, 0, pos) : [];
   const ahead = routeSlice(scene, hasBus ? pos : 0, end);
   const bus = hasBus ? scene.pointAt(pos) : null;
-  const busScreen = bus ? busLabelAt(scene, bus.world) : null;
   const faces = bus ? busFaces(scene, bus.world, bus.heading) : null;
   const user = model.userIdx >= 0 ? scene.stops[model.userIdx] : null;
-  const busStopIdx = hasBus && model.mode === 'waiting' ? Math.round(pos) : -1;
 
-  type Label = { x: number; y: number; text: string; strong: boolean; anchor: 'start' | 'middle' | 'end' };
+  type Label = { x: number; y: number; text: string; strong: boolean; anchor: 'start' | 'middle' | 'end'; dark?: boolean };
   const labels: Label[] = [];
   const span = (l: Pick<Label, 'x' | 'anchor'>) => {
     const w = 110;
@@ -161,9 +160,9 @@ function Overlay({ scene, names, model, pulse }: { scene: Scene; names: string[]
       const [b0, b1] = span(o);
       return Math.abs(o.y - l.y) < 16 && a0 < b1 && b0 < a1;
     });
-  // Reserved where the bus is heading (not where it is mid-glide), so stop labels don't flicker.
+  // Keep labels off the bus's resting spot (not its mid-glide spot), so they don't flicker.
   const busTarget = model.busPos != null ? busLabelAt(scene, scene.pointAt(model.busPos).world) : null;
-  const reserved = busTarget ? [{ x: busTarget.x, y: busTarget.y, anchor: 'middle' as const }] : [];
+  const reserved = busTarget ? [{ x: busTarget.x, y: busTarget.y + 10, anchor: 'middle' as const }] : [];
   const place = (p: { x: number; y: number }, text: string, strong = false, dy = 4, preferRight = true) => {
     const fitsRight = p.x < scene.width - 130;
     const fitsLeft = p.x > 130;
@@ -175,31 +174,28 @@ function Overlay({ scene, names, model, pulse }: { scene: Scene; names: string[]
   };
   if (scene.you) {
     const { x, y } = scene.you.screen;
-    const you: Label = { x: clamp(x, 70, scene.width - 70), y: y + 22, text: model.walkMin != null ? `You · ${model.walkMin} min walk` : 'You', strong: true, anchor: 'middle' };
+    const you: Label = { x: clamp(x, 70, scene.width - 70), y: y + 22, text: model.walkMin != null ? `You · ${model.walkMin} min walk` : 'You', strong: true, anchor: 'middle', dark: true };
     if (clashes(you, reserved)) you.y = y - 18;
     labels.push(you);
   }
   // The stop's name goes on the far side from "You", so the walk leg stays readable.
   if (user) place(user.screen, names[model.userIdx], true, 4, !scene.you || scene.you.screen.x < user.screen.x);
-  if (busStopIdx >= 0 && busStopIdx !== model.userIdx) place(scene.stops[busStopIdx].screen, names[busStopIdx]);
   if (end > 0 && end !== model.userIdx) place(scene.stops[end].screen, names[end]);
-  if (end > 0 && model.userIdx !== 0 && busStopIdx !== 0) place(scene.stops[0].screen, names[0]);
 
   return (
     <g>
       {behind.length > 1 && (
-        <polyline points={pts(behind)} fill="none" stroke="#a3acb9" strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" />
+        <polyline points={pts(behind)} fill="none" stroke="#c3cad3" strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" />
       )}
       {ahead.length > 1 && (
         <polyline
           points={pts(ahead)}
           fill="none"
-          stroke="var(--map-route)"
-          strokeWidth={6}
+          stroke={ROUTE_INK}
+          strokeWidth={5}
           strokeLinecap="round"
           strokeLinejoin="round"
           strokeDasharray={dashed ? '2 9' : undefined}
-          style={{ transition: 'stroke 400ms ease' }}
         />
       )}
 
@@ -224,10 +220,10 @@ function Overlay({ scene, names, model, pulse }: { scene: Scene; names: string[]
             key={i}
             cx={s.screen.x}
             cy={s.screen.y}
-            r={isUser ? 8 : 5}
+            r={isUser ? 7.5 : 4.5}
             fill="#ffffff"
-            stroke={passed && !isUser ? '#a3acb9' : 'var(--map-route)'}
-            strokeWidth={isUser ? 4 : 3}
+            stroke={passed && !isUser ? '#c3cad3' : ROUTE_INK}
+            strokeWidth={isUser ? 3.5 : 2.5}
           />
         );
       })}
@@ -252,19 +248,21 @@ function Overlay({ scene, names, model, pulse }: { scene: Scene; names: string[]
           ))}
           <polygon points={pts(faces.top)} fill="var(--map-route)" stroke="#ffffff" strokeWidth={1.25} strokeLinejoin="round" />
           <polygon points={pts(faces.top)} fill="rgb(255 255 255 / 0.25)" />
-          {busScreen && (
-            <text x={busScreen.x} y={busScreen.y} textAnchor="middle" className="map-label">
-              Bus
-            </text>
-          )}
         </g>
       )}
 
-      {labels.map((l) => (
-        <text key={l.text} x={l.x} y={l.y} textAnchor={l.anchor} className={`map-label ${l.strong ? 'map-label--strong' : ''}`}>
-          {l.text}
-        </text>
-      ))}
+      {labels.map((l) => {
+        const w = l.text.length * (l.strong ? 7.4 : 6.8) + 18;
+        const x0 = l.anchor === 'start' ? l.x - 4 : l.anchor === 'end' ? l.x - w + 4 : l.x - w / 2;
+        return (
+          <g key={l.text} className="map-pill" data-dark={l.dark ?? false}>
+            <rect x={x0} y={l.y - 15} width={w} height={23} rx={11.5} />
+            <text x={x0 + w / 2} y={l.y + 0.5} textAnchor="middle" className={`map-label ${l.strong ? 'map-label--strong' : ''}`}>
+              {l.text}
+            </text>
+          </g>
+        );
+      })}
     </g>
   );
 }
@@ -288,7 +286,6 @@ export function RouteMap3D({ stops, model, pulse, insetBottom }: RouteMap3DProps
           </svg>
         )}
       </div>
-      <div className="route-map__sky" aria-hidden />
     </figure>
   );
 }
