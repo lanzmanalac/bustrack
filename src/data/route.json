@@ -1,0 +1,15 @@
+{
+  "route_id": "demo-route",
+  "name": "[BGC Bus route name]",
+  "direction": "[toward ...]",
+  "headway_min": 10,
+  "service_hours": "[06:00-22:00]",
+  "stops": [
+    { "stop_id": "s1", "route_id": "demo-route", "name": "[Stop 1]", "lat": 14.5600, "lng": 121.0480, "seq": 1 },
+    { "stop_id": "s2", "route_id": "demo-route", "name": "[Stop 2]", "lat": 14.5555, "lng": 121.0490, "seq": 2 },
+    { "stop_id": "s3", "route_id": "demo-route", "name": "[Stop 3]", "lat": 14.5510, "lng": 121.0500, "seq": 3 },
+    { "stop_id": "s4", "route_id": "demo-route", "name": "[Stop 4]", "lat": 14.5465, "lng": 121.0510, "seq": 4 },
+    { "stop_id": "s5", "route_id": "demo-route", "name": "[Stop 5]", "lat": 14.5420, "lng": 121.0520, "seq": 5 },
+    { "stop_id": "s6", "route_id": "demo-route", "name": "[Stop 6]", "lat": 14.5375, "lng": 121.0530, "seq": 6 }
+  ]
+}
