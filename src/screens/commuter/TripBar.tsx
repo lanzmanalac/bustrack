@@ -170,7 +170,7 @@ export function TripBar({ stops, intent, verdict, pending, onSubmit, onPickStop,
           id={inputId}
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Where to? e.g. High Street by 9"
+          placeholder="Where to? e.g. EDSA Ayala by 7"
           autoComplete="off"
           enterKeyHint="go"
           className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-[#667085]"

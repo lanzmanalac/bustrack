@@ -1,5 +1,6 @@
+import { busPosition } from '../../components/RouteLine/geometry';
 import { CONFIG } from '../../contracts/config';
-import type { Confidence, LeavePlan, PlanB, Urgency } from '../../contracts/types';
+import type { BusStatus, Confidence, LeavePlan, PlanB, Stop, Urgency } from '../../contracts/types';
 import type { ChipTone } from '../../ui/Chip';
 
 export type ViewState =
@@ -40,7 +41,7 @@ export interface HeroModel {
 }
 
 export interface ChipModel {
-  id: 'phase' | 'crowd' | 'fresh';
+  id: 'crowd' | 'fresh';
   label: string;
   tone: ChipTone;
   live?: boolean;
@@ -301,23 +302,6 @@ export function freshnessChip(plan: LeavePlan, realElapsedSec: number): ChipMode
   return { id: 'fresh', label, tone, live: level === 'high' };
 }
 
-export function phaseChip(plan: LeavePlan, state: ViewState): ChipModel | null {
-  if (state === 'location_off' || state === 'offline') return null;
-  switch (plan.phase) {
-    case 'standby':
-      return { id: 'phase', label: `Bus waiting at ${plan.bus_at_stop?.name ?? 'a stop'}`, tone: 'neutral' };
-    case 'moving': {
-      const n = plan.stops_away;
-      const label = n == null ? 'Bus on the way' : n <= 0 ? 'Bus arriving' : `${plural(n, 'stop')} away`;
-      return { id: 'phase', label, tone: 'neutral' };
-    }
-    case 'passed':
-      return { id: 'phase', label: 'Bus passed your stop', tone: 'muted' };
-    case 'no_signal':
-      return { id: 'phase', label: 'No live bus', tone: 'muted' };
-  }
-}
-
 /** A level and how many riders reported, never a passenger count. */
 export function crowdChip(plan: LeavePlan): ChipModel | null {
   const reported = plural(plan.crowd_reports, 'rider') + ' reported';
@@ -335,12 +319,16 @@ export function crowdChip(plan: LeavePlan): ChipModel | null {
   }
 }
 
-export function chipsFor(plan: LeavePlan, ctx: ViewContext): ChipModel[] {
+export interface MetaModel {
+  fresh: ChipModel;
+  crowd: ChipModel | null;
+}
+
+/** The quiet line under the hero. The bus phase lives in the hero sub line and the map. */
+export function metaFor(plan: LeavePlan, ctx: ViewContext): MetaModel | null {
   const state = viewStateFor(plan, ctx);
-  if (state === 'location_off') return [];
-  const fresh = freshnessChip(plan, ctx.realElapsedSec);
-  const crowd = state === 'missed' ? null : crowdChip(plan);
-  return [phaseChip(plan, state), crowd, fresh].filter((c): c is ChipModel => c !== null);
+  if (state === 'location_off') return null;
+  return { fresh: freshnessChip(plan, ctx.realElapsedSec), crowd: state === 'missed' ? null : crowdChip(plan) };
 }
 
 function sourceLine(plan: LeavePlan, realElapsedSec: number): string {
@@ -426,6 +414,77 @@ export function explainFor(plan: LeavePlan, ctx: ViewContext): ExplainModel {
         source,
       };
   }
+}
+
+export interface MapModel {
+  /** Fractional stop index: 1.5 = halfway between the 2nd and 3rd stop. */
+  busPos: number | null;
+  mode: 'live' | 'waiting' | 'passed' | 'none';
+  userIdx: number;
+  walkMin: number | null;
+  /** Grey the map out: offline, schedule estimate, or no bus to show. */
+  stale: boolean;
+  label: string;
+}
+
+/** The LeavePlan carries no coordinates, so this is approximate until live buses are passed in. */
+function planBusPos(plan: LeavePlan, stops: Stop[], userIdx: number): number | null {
+  if (plan.phase === 'standby' && plan.bus_at_stop) {
+    const i = stops.findIndex((s) => s.stop_id === plan.bus_at_stop!.stop_id);
+    return i >= 0 ? i : null;
+  }
+  if (userIdx < 0) return null;
+  if (plan.phase === 'passed') return Math.min(stops.length - 1, userIdx + 0.5);
+  if (plan.phase === 'moving' && plan.stops_away != null) {
+    return plan.stops_away <= 0 ? userIdx : Math.max(0, userIdx - plan.stops_away + 0.5);
+  }
+  return null;
+}
+
+function liveBusPos(buses: BusStatus[], stops: Stop[], userIdx: number): { pos: number; waiting: boolean } | null {
+  const placed = buses
+    .filter((b) => b.status !== 'offline')
+    .map((b) => ({ pos: busPosition(b, stops), waiting: b.status === 'waiting' }))
+    .filter((p): p is { pos: number; waiting: boolean } => p.pos !== null);
+  if (placed.length === 0) return null;
+  const behind = placed.filter((p) => userIdx < 0 || p.pos <= userIdx).sort((a, b) => b.pos - a.pos);
+  return behind[0] ?? placed.sort((a, b) => a.pos - b.pos)[0];
+}
+
+export function mapFor(plan: LeavePlan, ctx: ViewContext, routeStops: Stop[], buses?: BusStatus[]): MapModel {
+  const stops = [...routeStops].sort((a, b) => a.seq - b.seq);
+  const userIdx = stops.findIndex((s) => s.stop_id === plan.user_stop?.stop_id);
+  const walkMin = userIdx >= 0 && plan.walk_sec > 0 ? walkMinutes(plan.walk_sec) : null;
+
+  const live = plan.phase === 'no_signal' || !buses ? null : liveBusPos(buses, stops, userIdx);
+  const busPos = plan.phase === 'no_signal' ? null : live ? live.pos : planBusPos(plan, stops, userIdx);
+  const waiting = live ? live.waiting : plan.phase === 'standby';
+  const mode: MapModel['mode'] =
+    busPos == null ? 'none' : userIdx >= 0 && busPos > userIdx ? 'passed' : waiting ? 'waiting' : 'live';
+  const stale = ctx.offline || plan.confidence === 'low' || mode === 'none';
+
+  const stop = userIdx >= 0 ? stops[userIdx].name : null;
+  const walkSentence = walkMin != null && stop ? ` You are a ${walkMin} min walk from ${stop}.` : '';
+  let label: string;
+  if (!stop) {
+    label = `Route map with ${stops.length} stops. Pick your stop to see the bus relative to you.`;
+  } else if (busPos == null) {
+    label = `No live bus position. Your stop is ${stop}${walkMin != null ? `, a ${walkMin} min walk away` : ''}.`;
+  } else if (mode === 'passed') {
+    label = `Bus has passed your stop, ${stop}.`;
+  } else {
+    const lower = Math.floor(busPos);
+    const where = Number.isInteger(busPos)
+      ? `Bus is ${waiting ? 'waiting at' : 'at'} ${stops[busPos].name}`
+      : `Bus is between ${stops[lower].name} and ${stops[lower + 1].name}`;
+    const away = Math.ceil(userIdx - busPos);
+    label =
+      away <= 0
+        ? `Bus is at your stop, ${stop}.${walkSentence}`
+        : `${where}, ${plural(away, 'stop')} before your stop, ${stop}.${walkSentence}`;
+  }
+
+  return { busPos, mode, userIdx, walkMin, stale, label: ctx.offline ? `Last known: ${label}` : label };
 }
 
 export function planBFor(plan: LeavePlan): PlanBModel | null {

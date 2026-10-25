@@ -46,6 +46,7 @@
   --tone-muted: #23564f;
   --tone-accent: #0e7a6d;
   --tone-pill: rgb(14 122 109 / 0.12);
+  --map-route: #0e7a6d;
 }
 [data-tone='get_ready'] {
   --tone-bg: #fcebc4;
@@ -53,6 +54,7 @@
   --tone-muted: #613b00;
   --tone-accent: #b4610a;
   --tone-pill: rgb(180 97 10 / 0.14);
+  --map-route: #b4610a;
 }
 [data-tone='leave_now'] {
   --tone-bg: #c4360f;
@@ -60,6 +62,7 @@
   --tone-muted: #fff1ec;
   --tone-accent: #ffffff;
   --tone-pill: rgb(255 255 255 / 0.2);
+  --map-route: #c4360f;
 }
 [data-tone='missed'] {
   --tone-bg: #e3e7ec;
@@ -67,6 +70,7 @@
   --tone-muted: #414b5a;
   --tone-accent: #475467;
   --tone-pill: rgb(71 84 103 / 0.12);
+  --map-route: #64748b;
 }
 [data-tone='low'] {
   --tone-bg: #eef0f2;
@@ -74,6 +78,7 @@
   --tone-muted: #414b5a;
   --tone-accent: #6b7280;
   --tone-pill: rgb(107 114 128 / 0.14);
+  --map-route: #7b8494;
 }
 
 .tone-surface {
@@ -83,9 +88,37 @@
     background-color 400ms ease,
     color 400ms ease;
 }
-.tone-surface[data-low-confidence='true'] {
+.hero-button[data-low-confidence='true'] {
   outline: 2px dashed #7b8494;
-  outline-offset: -6px;
+  outline-offset: -2px;
+}
+
+/* The hero's urgency color bleeds into the top of the map, so the two read as one scene. */
+.route-map__sky {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 96px;
+  pointer-events: none;
+  background-color: var(--tone-bg);
+  mask-image: linear-gradient(to bottom, #000 0%, rgb(0 0 0 / 0.55) 35%, transparent 100%);
+  transition: background-color 400ms ease;
+}
+.route-map[data-stale='true'] svg {
+  filter: saturate(0.3);
+  opacity: 0.88;
+}
+.map-label {
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  font-weight: 700;
+  fill: var(--ink);
+  paint-order: stroke;
+  stroke: #ffffff;
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+.map-label--strong {
+  font-size: 14px;
 }
 
 .live-dot {

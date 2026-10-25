@@ -21,13 +21,13 @@ export function PlanBCard({ model }: { model: PlanBModel }) {
   return (
     <motion.section
       aria-labelledby="plan-b-title"
-      className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-5 shadow-sm"
+      className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4 shadow-lg"
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 24 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
     >
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-semibold tracking-wide text-[var(--ink-muted)] uppercase">Plan B · {model.reason}</p>
         {isSuggested && model.aiBadge && (
           <span className="inline-flex items-center gap-1 rounded-full bg-[#eef2ff] px-2.5 py-1 text-xs font-bold text-[#3730a3]">
@@ -41,20 +41,20 @@ export function PlanBCard({ model }: { model: PlanBModel }) {
       </div>
 
       <div className="flex items-center gap-3">
-        <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-[var(--page-bg)]">
-          <Icon size={26} aria-hidden />
+        <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-[var(--page-bg)]">
+          <Icon size={24} aria-hidden />
         </span>
         <div>
-          <h2 id="plan-b-title" className="text-2xl leading-tight font-bold">
+          <h2 id="plan-b-title" className="text-xl leading-tight font-bold">
             {PLAN_B_LABEL[picked]}
           </h2>
-          {isSuggested && model.detail && <p className="text-[1.0625rem] font-semibold text-[var(--ink-muted)]">{model.detail}</p>}
+          {isSuggested && model.detail && <p className="text-base font-semibold text-[var(--ink-muted)]">{model.detail}</p>}
         </div>
       </div>
 
-      {isSuggested && <p className="mt-3 text-[0.9375rem] leading-snug text-[var(--ink-muted)]">{model.why}</p>}
+      {isSuggested && <p className="mt-2 text-[0.9375rem] leading-snug text-[var(--ink-muted)]">{model.why}</p>}
 
-      <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Other options">
+      <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Other options">
         {others.map((kind) => (
           <button
             key={kind}

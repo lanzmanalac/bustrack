@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { FIXTURES } from '../../contracts/fixtures';
-import type { LeavePlan } from '../../contracts/types';
-import { breakdown, chipsFor, crowdChip, explainFor, freshnessChip, heroFor, planBFor, viewStateFor, type ViewContext } from './view';
+import type { BusStatus, LeavePlan, Stop } from '../../contracts/types';
+import route from '../../data/route.json';
+import { breakdown, crowdChip, explainFor, freshnessChip, heroFor, mapFor, metaFor, planBFor, viewStateFor, type ViewContext } from './view';
+
+const stopName = (seq: number) => route.stops[seq - 1].name;
 
 const ctx = (over: Partial<ViewContext> = {}): ViewContext => ({
   worldElapsedSec: 0,
@@ -43,7 +46,7 @@ describe('heroFor copy', () => {
   it('relax', () => {
     const h = heroFor(FIXTURES.relax, ctx());
     expect(h.minutes).toBe(12);
-    expect(h.sub).toBe('Bus is 2 stops away · 4 min walk to [Stop 4]');
+    expect(h.sub).toBe(`Bus is 2 stops away · 4 min walk to ${stopName(4)}`);
     expect(h.announce).toBe('Leave in 12 minutes');
     expect(h.tone).toBe('relax');
   });
@@ -56,16 +59,16 @@ describe('heroFor copy', () => {
     const h = heroFor(FIXTURES.leave_now, ctx());
     expect(h.headline).toBe('Alis na!');
     expect(h.subhead).toBe('Leave now');
-    expect(h.sub).toBe('Walk to [Stop 4] · bus arrives in ~5 min');
+    expect(h.sub).toBe(`Walk to ${stopName(4)} · bus arrives in ~5 min`);
     expect(h.tone).toBe('leave_now');
   });
 
   it('standby, missed, full, delayed, no_signal', () => {
     const standby = heroFor(FIXTURES.standby, ctx());
-    expect([standby.approx, standby.minutes, standby.suffix, standby.sub]).toEqual([true, 4, 'or later', 'Bus is still waiting at [Stop 2]']);
+    expect([standby.approx, standby.minutes, standby.suffix, standby.sub]).toEqual([true, 4, 'or later', `Bus is still waiting at ${stopName(2)}`]);
     expect(heroFor(FIXTURES.missed, ctx()).sub).toBe('Next bus in ~10 min');
     expect(heroFor(FIXTURES.full, ctx()).headline).toBe('This bus is full');
-    expect(heroFor(FIXTURES.delayed, ctx()).sub).toBe('Still at [Stop 3] for 3+ min · walking takes 14 min');
+    expect(heroFor(FIXTURES.delayed, ctx()).sub).toBe(`Still at ${stopName(3)} for 3+ min · walking takes 14 min`);
     const noSignal = heroFor(FIXTURES.no_signal, ctx());
     expect(noSignal.headline).toBe('A bus comes every ~10 min');
     expect(noSignal.lowConfidence).toBe(true);
@@ -119,12 +122,62 @@ describe('chips', () => {
     expect(crowdChip(FIXTURES.no_signal)).toBeNull();
   });
 
-  it('standby phase chip names the stop', () => {
-    expect(chipsFor(FIXTURES.standby, ctx()).map((c) => c.label)).toContain('Bus waiting at [Stop 2]');
+  it('meta line: freshness always, crowd only while you can still catch the bus', () => {
+    expect(metaFor(FIXTURES.leave_now, ctx())).toMatchObject({ fresh: { label: 'Live · 8s ago' }, crowd: { label: 'Busy · 5 riders reported' } });
+    expect(metaFor(FIXTURES.missed, ctx())!.crowd).toBeNull();
+    expect(metaFor({ ...FIXTURES.relax, user_stop: null }, ctx())).toBeNull();
+  });
+});
+
+describe('mapFor: where the bus sits and the text alternative', () => {
+  const stops = route.stops as Stop[];
+
+  it('moving: bus sits between stops, counted from the plan', () => {
+    const m = mapFor(FIXTURES.relax, ctx(), stops);
+    expect([m.busPos, m.userIdx, m.mode]).toEqual([1.5, 3, 'live']);
+    expect(m.label).toBe(`Bus is between ${stopName(2)} and ${stopName(3)}, 2 stops before your stop, ${stopName(4)}. You are a 4 min walk from ${stopName(4)}.`);
   });
 
-  it('drops the crowd chip once you have missed that bus', () => {
-    expect(chipsFor(FIXTURES.missed, ctx()).map((c) => c.id)).toEqual(['phase', 'fresh']);
+  it('standby and delayed: bus waits at the named stop', () => {
+    const standby = mapFor(FIXTURES.standby, ctx(), stops);
+    expect([standby.busPos, standby.mode]).toEqual([1, 'waiting']);
+    expect(standby.label).toMatch(new RegExp(`^Bus is waiting at ${stopName(2)}, 2 stops before your stop, ${stopName(4)}\\.`));
+    const delayed = mapFor(FIXTURES.delayed, ctx(), stops);
+    expect(delayed.busPos).toBe(2);
+    expect(delayed.label).toMatch(new RegExp(`^Bus is waiting at ${stopName(3)}, 1 stop before your stop`));
+  });
+
+  it('passed: bus is beyond your stop', () => {
+    const m = mapFor(FIXTURES.missed, ctx(), stops);
+    expect([m.busPos, m.mode]).toEqual([3.5, 'passed']);
+    expect(m.label).toBe(`Bus has passed your stop, ${stopName(4)}.`);
+  });
+
+  it('no signal: no bus on the map, and it says so', () => {
+    const m = mapFor(FIXTURES.no_signal, ctx(), stops);
+    expect([m.busPos, m.mode, m.stale]).toEqual([null, 'none', true]);
+    expect(m.label).toBe(`No live bus position. Your stop is ${stopName(4)}, a 4 min walk away.`);
+  });
+
+  it('offline: last known position, marked stale', () => {
+    const m = mapFor(FIXTURES.relax, ctx({ offline: true }), stops);
+    expect(m.stale).toBe(true);
+    expect(m.label).toMatch(/^Last known: Bus is between/);
+  });
+
+  it('location off: route only, no "You"', () => {
+    const m = mapFor({ ...FIXTURES.relax, user_stop: null }, ctx(), stops);
+    expect([m.userIdx, m.walkMin]).toEqual([-1, null]);
+    expect(m.label).toBe(`Route map with ${route.stops.length} stops. Pick your stop to see the bus relative to you.`);
+  });
+
+  it('live buses win over the plan estimate', () => {
+    const bus: BusStatus = {
+      bus_id: 'bus-1', route_id: 'demo-route', lat: stops[4].lat, lng: stops[4].lng, status: 'waiting',
+      current_stop_id: 's5', next_stop_id: 's6', arrived_at: null, departed_at: null, is_full: false,
+      full_reported_at: null, source: 'simulated', updated_at: new Date().toISOString(),
+    };
+    expect(mapFor(FIXTURES.relax, ctx(), stops, [bus]).busPos).toBe(4);
   });
 });
 

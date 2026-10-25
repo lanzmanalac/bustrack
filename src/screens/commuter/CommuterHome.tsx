@@ -3,24 +3,27 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import '../../ui/tokens.css';
 import { realNowMs, worldElapsedSec } from '../../contracts/clock';
 import { CONFIG } from '../../contracts/config';
-import type { BusPhase, LeavePlan, Route, Stop, TripIntent } from '../../contracts/types';
+import type { BusPhase, BusStatus, LeavePlan, Route, Stop, TripIntent } from '../../contracts/types';
 import route from '../../data/route.json';
 import { Toast } from '../../ui/Toast';
 import { ExplainSheet } from './ExplainSheet';
 import { useFixturePlan } from './fixturePlan';
-import { Hero } from './Hero';
-import { useNow, useOnline } from './hooks';
+import { Hero, HeroMeta } from './Hero';
+import { useElementHeight, useNow, useOnline } from './hooks';
+import { RouteMap3D } from './map/RouteMap3D';
 import { PlanBCard } from './PlanBCard';
-import { RouteLineSlot } from './RouteLineSlot';
 import { StateSwitcher } from './StateSwitcher';
-import { StatusChips } from './StatusChips';
 import { StopPicker } from './StopPicker';
 import { TripBar, type TripBarProps } from './TripBar';
 import { resolveTripStub } from './tripStub';
-import { chipsFor, explainFor, heroFor, planBFor, type ViewContext } from './view';
+import { explainFor, heroFor, mapFor, metaFor, planBFor, type ViewContext } from './view';
 
 const ROUTE = route as Route;
 const TOAST_MS = 4000;
+/** The trip bar overlaps the bottom of the map by 88px; the route stays clear of it. */
+const MAP_INSET_BOTTOM = 104;
+/** Height the route itself always gets, even with Plan B open. */
+const MAP_MIN_ROUTE = 180;
 
 /** "Bus just left [Stop]": visible proof that the driver's tap is live. */
 function useLiveTapToast(phase: BusPhase, busAtStop: string | null): string | null {
@@ -43,16 +46,19 @@ function useLiveTapToast(phase: BusPhase, busAtStop: string | null): string | nu
 
 interface CommuterScreenProps {
   plan: LeavePlan;
+  /** Live bus positions from useLeavePlan(); without them the map places the bus from the plan. */
+  buses?: BusStatus[];
   forceOffline: boolean;
   onPickStop: (stop: Stop) => void;
   trip: Omit<TripBarProps, 'stops'>;
   top?: ReactNode;
 }
 
-export function CommuterScreen({ plan, forceOffline, onPickStop, trip, top }: CommuterScreenProps) {
+export function CommuterScreen({ plan, buses, forceOffline, onPickStop, trip, top }: CommuterScreenProps) {
   useNow(1000);
   const online = useOnline();
   const [explainOpen, setExplainOpen] = useState(false);
+  const [overlayRef, overlayHeight] = useElementHeight<HTMLDivElement>();
 
   // Mock mode syncs tabs with no network, so being offline only matters for live data.
   const offline = forceOffline || (!online && CONFIG.DATA_MODE === 'live');
@@ -63,7 +69,8 @@ export function CommuterScreen({ plan, forceOffline, onPickStop, trip, top }: Co
     headwayMin: ROUTE.headway_min,
   };
   const hero = heroFor(plan, ctx);
-  const chips = chipsFor(plan, ctx);
+  const meta = metaFor(plan, ctx);
+  const map = mapFor(plan, ctx, ROUTE.stops, buses);
   const explain = explainFor(plan, ctx);
   const planB = offline ? null : planBFor(plan);
   const toast = useLiveTapToast(plan.phase, plan.bus_at_stop?.name ?? null);
@@ -77,27 +84,31 @@ export function CommuterScreen({ plan, forceOffline, onPickStop, trip, top }: Co
   return (
     <MotionConfig reducedMotion="user">
       <div className="commuter min-h-dvh">
-        <div className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col">
+        <div data-tone={hero.tone} className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col">
           {top}
-          <header className="flex items-baseline justify-between gap-3 px-5 pt-4 pb-3">
-            <span className="text-[0.9375rem] font-bold">BGC Bus</span>
-            <span className="truncate text-[0.8125rem] font-medium text-[var(--ink-muted)]">
-              {ROUTE.name} · {ROUTE.direction}
-            </span>
-          </header>
-
-          <main className="flex flex-1 flex-col gap-3 px-4">
+          <section className="tone-surface">
+            <header className="flex items-baseline justify-between gap-3 px-5 pt-4 pb-1">
+              <span className="text-[0.9375rem] font-bold">BGC Bus</span>
+              <span className="truncate text-[0.8125rem] font-medium text-[var(--tone-muted)]">
+                {ROUTE.name} · {ROUTE.direction}
+              </span>
+            </header>
             <Hero model={hero} onExplain={() => setExplainOpen(true)} />
-            <StatusChips chips={chips} />
-            <AnimatePresence>{planB && <PlanBCard key={`${planB.kind}-${planB.reason}`} model={planB} />}</AnimatePresence>
-            {hero.state === 'location_off' ? (
-              <section className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4">
-                <h2 className="mb-3 text-[1.0625rem] font-bold">Which stop do you walk to?</h2>
-                <StopPicker stops={ROUTE.stops} onPick={onPickStop} label="Pick your stop" />
-              </section>
-            ) : (
-              <RouteLineSlot plan={plan} stops={ROUTE.stops} pulse={takeover} />
-            )}
+            {meta && <HeroMeta model={meta} />}
+          </section>
+
+          <main className="relative -mb-[88px] flex flex-1" style={{ minHeight: MAP_MIN_ROUTE + MAP_INSET_BOTTOM + overlayHeight }}>
+            <RouteMap3D stops={ROUTE.stops} model={map} pulse={takeover} insetBottom={MAP_INSET_BOTTOM + overlayHeight} />
+            {/* Plan B and the stop picker float over the lower map, just above the trip bar. */}
+            <div ref={overlayRef} className="absolute inset-x-3 z-20 bottom-[76px]">
+              <AnimatePresence>{planB && <PlanBCard key={`${planB.kind}-${planB.reason}`} model={planB} />}</AnimatePresence>
+              {hero.state === 'location_off' && (
+                <section className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4 shadow-sm">
+                  <h2 className="mb-3 text-[1.0625rem] font-bold">Which stop do you walk to?</h2>
+                  <StopPicker stops={ROUTE.stops} onPick={onPickStop} label="Pick your stop" />
+                </section>
+              )}
+            </div>
           </main>
 
           <TripBar stops={ROUTE.stops} {...trip} />
