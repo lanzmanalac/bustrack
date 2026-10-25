@@ -42,13 +42,14 @@ export function Hero({ model, fresh, onExplain }: { model: HeroModel; fresh: Chi
         )}
       </button>
 
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-5 pt-1 pb-8 text-[0.9375rem] font-medium text-[var(--tone-muted)]">
-        <p className="text-pretty">
-          {model.accent && <i className="font-semibold">{model.accent}. </i>}
-          {model.sub}
-        </p>
+      <ul className="flex flex-wrap gap-1.5 px-5 pt-2 pb-8 text-sm font-semibold">
+        {model.sub.split(' · ').map((part) => (
+          <li key={part} className="rounded-full bg-white/65 px-3 py-1">
+            {part}
+          </li>
+        ))}
         {fresh && (
-          <span className="inline-flex shrink-0 items-center gap-1.5 text-[0.8125rem] font-semibold">
+          <li className="inline-flex items-center gap-1.5 rounded-full bg-white/65 px-3 py-1">
             {fresh.live ? (
               <span className="live-dot size-2 rounded-full bg-current" aria-hidden />
             ) : fresh.tone === 'muted' ? (
@@ -56,10 +57,10 @@ export function Hero({ model, fresh, onExplain }: { model: HeroModel; fresh: Chi
             ) : (
               <Radio size={14} aria-hidden />
             )}
-            {fresh.label}
-          </span>
+            {fresh.label.replace(/^Updated /, '')}
+          </li>
         )}
-      </div>
+      </ul>
 
       <p aria-live="polite" className="sr-only">
         {model.announce}

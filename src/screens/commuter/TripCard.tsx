@@ -1,5 +1,5 @@
-import { ArrowUpRight, Bell, BellRing, BusFront, ShieldCheck, Users } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { ArrowUpRight, Bell, BellRing, BusFront, ChevronUp, ShieldCheck, Users } from 'lucide-react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { CONFIG } from '../../contracts/config';
 import type { TripModel } from './view';
 
@@ -30,63 +30,84 @@ function useReminder() {
 
 export function TripCard({ model, onExplain }: { model: TripModel; onExplain: () => void }) {
   const { setFor, toggle } = useReminder();
+  const [open, setOpen] = useState(false);
+  const panelId = useId();
   const { steps, leaveInSec, stop, crowd } = model;
   const canRemind = steps != null && leaveInSec != null && leaveInSec > 60 && stop != null;
+  const busAt = steps?.[2];
 
   return (
-    <section aria-label="Your trip" className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4 shadow-lg">
-      <div className="flex items-center gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[var(--tone-bg)] text-[var(--tone-fg)]" aria-hidden>
-          <BusFront size={20} />
+    <section aria-label="Your trip" className="rounded-[22px] border border-[var(--line)] bg-[var(--surface)] shadow-lg">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={panelId}
+        onClick={() => setOpen((o) => !o)}
+        className="flex min-h-14 w-full items-center gap-3 px-3.5 py-2.5 text-left"
+      >
+        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[var(--tone-bg)] text-[var(--tone-fg)]" aria-hidden>
+          <BusFront size={18} />
         </span>
-        <p className="min-w-0 flex-1 truncate text-[1.0625rem] font-bold">
-          BGC Bus{stop && <span className="font-medium text-[var(--ink-muted)]"> · {stop}</span>}
-        </p>
+        <span className="min-w-0 flex-1 truncate font-bold">
+          {busAt ? (
+            <>
+              Bus <span className="tabular-nums">{busAt.time}</span>
+            </>
+          ) : (
+            'BGC Bus'
+          )}
+        </span>
         {crowd && (
-          <span className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-[var(--ink-muted)]">
-            <Users size={16} aria-hidden />
+          <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-[var(--ink-muted)]">
+            <Users size={15} aria-hidden />
             {crowd}
           </span>
         )}
-      </div>
+        <ChevronUp size={18} aria-hidden className={`shrink-0 text-[var(--ink-muted)] transition-transform duration-200 ${open ? '' : 'rotate-180'}`} />
+        {setFor && <BellRing size={16} aria-label="Reminder set" className="shrink-0 text-[var(--map-route)]" />}
+      </button>
 
-      {steps && (
-        <ol className="mt-4 grid grid-cols-3 gap-2">
-          {steps.map((s, i) => (
-            <li key={s.label}>
-              <div className="flex items-center gap-1" aria-hidden>
-                <span className="size-2 shrink-0 rounded-full bg-[var(--map-route)]" />
-                {i < steps.length - 1 && <span className="h-0.5 flex-1 rounded-full bg-[var(--line)]" />}
-              </div>
-              <p className="mt-2 text-lg font-bold tabular-nums">{s.time}</p>
-              <p className="text-sm leading-snug text-[var(--ink-muted)]">{s.label}</p>
-            </li>
-          ))}
-        </ol>
+      {open && (
+        <div id={panelId} className="px-4 pb-3">
+          {steps && (
+            <ol className="grid grid-cols-3 gap-2 border-t border-[var(--line)] pt-3">
+              {steps.map((s, i) => (
+                <li key={s.label}>
+                  <div className="flex items-center gap-1" aria-hidden>
+                    <span className="size-2 shrink-0 rounded-full bg-[var(--map-route)]" />
+                    {i < steps.length - 1 && <span className="h-0.5 flex-1 rounded-full bg-[var(--line)]" />}
+                  </div>
+                  <p className="mt-1.5 text-base font-bold tabular-nums">{s.time}</p>
+                  <p className="text-[0.8125rem] leading-snug text-[var(--ink-muted)]">{s.label}</p>
+                </li>
+              ))}
+            </ol>
+          )}
+
+          {canRemind && (
+            <button
+              type="button"
+              aria-pressed={setFor != null}
+              onClick={() => void toggle(leaveInSec, steps[0].time, stop)}
+              className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--tone-bg)] text-[0.9375rem] font-bold text-[var(--tone-fg)]"
+            >
+              {setFor ? <BellRing size={17} aria-hidden /> : <Bell size={17} aria-hidden />}
+              {setFor ? `Reminder · ${setFor}` : 'Remind me to leave'}
+            </button>
+          )}
+
+          <div className="mt-1 flex flex-wrap items-center justify-between gap-x-3 text-[0.8125rem]">
+            <button type="button" onClick={onExplain} className="inline-flex min-h-11 items-center gap-1 font-semibold">
+              See the math
+              <ArrowUpRight size={15} aria-hidden />
+            </button>
+            <span className="inline-flex items-center gap-1.5 text-[var(--ink-muted)]">
+              <ShieldCheck size={15} aria-hidden />
+              Location stays on your phone
+            </span>
+          </div>
+        </div>
       )}
-
-      {canRemind && (
-        <button
-          type="button"
-          aria-pressed={setFor != null}
-          onClick={() => void toggle(leaveInSec, steps[0].time, stop)}
-          className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--tone-bg)] text-base font-bold text-[var(--tone-fg)]"
-        >
-          {setFor ? <BellRing size={18} aria-hidden /> : <Bell size={18} aria-hidden />}
-          {setFor ? `Reminder set · ${setFor}` : 'Remind me to leave'}
-        </button>
-      )}
-
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 text-sm">
-        <button type="button" onClick={onExplain} className="inline-flex min-h-11 items-center gap-1 font-semibold">
-          See the math
-          <ArrowUpRight size={16} aria-hidden />
-        </button>
-        <span className="inline-flex items-center gap-1.5 text-[var(--ink-muted)]">
-          <ShieldCheck size={16} aria-hidden />
-          Location stays on your phone
-        </span>
-      </div>
     </section>
   );
 }

@@ -170,10 +170,10 @@ function toneFor(state: ViewState, urgency: Urgency): Tone {
   }
 }
 
-function stopsAwaySentence(stopsAway: number | null): string {
-  if (stopsAway == null) return 'Bus is on the way';
-  if (stopsAway <= 0) return 'Bus is arriving';
-  return `Bus is ${plural(stopsAway, 'stop')} away`;
+function stopsAway(n: number | null): string {
+  if (n == null) return 'Bus on the way';
+  if (n <= 0) return 'Bus arriving';
+  return `${plural(n, 'stop')} away`;
 }
 
 /**
@@ -216,29 +216,29 @@ export function heroFor(plan: LeavePlan, ctx: ViewContext): HeroModel {
       const m = leaveMinutes(leaveIn ?? 0);
       const sub =
         state === 'relax'
-          ? `${stopsAwaySentence(plan.stops_away)} · ${walk ? `${walk} min walk to` : 'catch it at'} ${stop}`
-          : `Start wrapping up, no rush${walk ? ` · ${walk} min walk` : ''}`;
+          ? `${stopsAway(plan.stops_away)}${walk ? ` · ${walk} min walk` : ''}`
+          : `${walk ? `${walk} min walk · ` : ''}No rush`;
       return { ...base, minutes: m, sub, announce: `Leave in ${plural(m, 'minute')}` };
     }
     case 'leave_now': {
       const b = breakdown(plan, ctx);
-      const eta = b ? ` · bus in ~${b.busMin} min` : '';
+      const eta = b ? `Bus in ~${b.busMin} min` : '';
       return {
         ...base,
         headline: 'Good time to head out',
-        sub: `An easy walk to ${stop}${eta}`,
+        sub: [walk ? `${walk} min walk` : '', eta].filter(Boolean).join(' · '),
         announce: 'Good time to head out',
       };
     }
     case 'standby': {
       if (leaveIn == null) {
-        return { ...base, headline: `Bus is waiting at ${busStop}`, sub: walk ? `${walk} min walk to ${stop}` : `Your stop: ${stop}`, announce: `Bus is waiting at ${busStop}` };
+        return { ...base, headline: `Bus is waiting at ${busStop}`, sub: walk ? `${walk} min walk` : stop, announce: `Bus is waiting at ${busStop}` };
       }
       if (leaveIn < 60) {
         return {
           ...base,
           headline: 'Good time to head out',
-          sub: `Bus is still at ${busStop} · heading over now keeps it easy`,
+          sub: `Bus still at ${busStop}`,
           announce: `Good time to head out. Bus is still at ${busStop}`,
         };
       }
@@ -248,26 +248,26 @@ export function heroFor(plan: LeavePlan, ctx: ViewContext): HeroModel {
         minutes: m,
         approx: true,
         suffix: 'or later',
-        sub: `Bus is still waiting at ${busStop}`,
+        sub: `Bus waiting at ${busStop}`,
         announce: `Leave in about ${plural(m, 'minute')} or later. Bus is still waiting at ${busStop}`,
       };
     }
     case 'missed':
-      return { ...base, headline: 'The next bus is a better fit', sub: `Next one in ~${nextBus} min`, announce: `The next bus is a better fit. It comes in about ${nextBus} minutes` };
+      return { ...base, headline: 'The next bus is a better fit', sub: `Next in ~${nextBus} min`, announce: `The next bus is a better fit. It comes in about ${nextBus} minutes` };
     case 'full':
       return {
         ...base,
         headline: 'This bus is full',
-        sub: `Reported by the driver · next bus ~${nextBus} min`,
+        sub: `Driver reported · Next in ~${nextBus} min`,
         announce: `This bus is full. Next bus in about ${nextBus} minutes`,
       };
     case 'delayed': {
-      const walkPart = plan.plan_b?.kind === 'walk' && plan.plan_b.minutes ? ` · walking takes ${plan.plan_b.minutes} min` : '';
+      const walkPart = plan.plan_b?.kind === 'walk' && plan.plan_b.minutes ? ` · ${plan.plan_b.minutes} min walk` : '';
       const stuckMin = Math.round(CONFIG.DELAY_STANDBY_SEC / 60);
       return {
         ...base,
         headline: 'Bus is running late',
-        sub: `Still at ${busStop} for ${stuckMin}+ min${walkPart}`,
+        sub: `At ${busStop} ${stuckMin}+ min${walkPart}`,
         announce: `Bus is running late. Still at ${busStop}`,
       };
     }
@@ -275,17 +275,17 @@ export function heroFor(plan: LeavePlan, ctx: ViewContext): HeroModel {
       return {
         ...base,
         headline: `A bus comes every ~${ctx.headwayMin} min`,
-        sub: 'No live bus right now · schedule estimate',
+        sub: 'No live bus',
         announce: `No live bus. A bus comes about every ${ctx.headwayMin} minutes`,
       };
     case 'offline': {
       const age = (plan.data_age_sec ?? 0) + ctx.realElapsedSec;
       const lastLeave = plan.leave_in_sec;
       const headline = lastLeave != null ? `Last known: leave in ~${leaveMinutes(lastLeave)} min` : 'Last known info';
-      return { ...base, headline, sub: `You're offline · showing saved info from ${ago(age)}`, announce: `You're offline. ${headline}` };
+      return { ...base, headline, sub: `Offline · Saved ${ago(age)}`, announce: `You're offline. ${headline}` };
     }
     case 'location_off':
-      return { ...base, headline: 'Pick your stop', sub: "We'll still tell you when to leave", announce: 'Pick your stop' };
+      return { ...base, headline: 'Pick your stop', sub: 'We’ll still time it for you', announce: 'Pick your stop' };
   }
 }
 

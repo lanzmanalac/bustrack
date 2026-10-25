@@ -11,7 +11,7 @@ import { useLeavePlan } from '../../logic/useLeavePlan';
 import { Toast } from '../../ui/Toast';
 import { ExplainSheet } from './ExplainSheet';
 import { useFixturePlan } from './fixturePlan';
-import { BrandRow, TripDropdown } from './Header';
+import { TripDropdown } from './Header';
 import { Hero } from './Hero';
 import { useElementHeight, useNow, useOnline } from './hooks';
 import { RouteMap3D } from './map/RouteMap3D';
@@ -93,8 +93,7 @@ export function CommuterScreen({ plan, buses, forceOffline, onPickStop, trip, to
         <div data-tone={hero.tone} className="tone-backdrop mx-auto flex min-h-dvh w-full max-w-[430px] flex-col">
           {top}
           <section className="tone-surface">
-            <BrandRow label={`BGC Bus · ${ROUTE.name.replace(/^BGC Bus\s*/, '')}`} />
-            <TripDropdown stops={ROUTE.stops} trip={trip} />
+            <TripDropdown stops={ROUTE.stops} routeLabel={ROUTE.name.replace(/^BGC Bus\s+/, 'BGC Bus · ')} trip={trip} />
             <Hero model={hero} fresh={meta?.fresh ?? null} onExplain={() => setExplainOpen(true)} />
           </section>
 

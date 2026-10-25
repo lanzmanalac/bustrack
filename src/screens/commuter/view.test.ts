@@ -46,7 +46,7 @@ describe('heroFor copy', () => {
   it('relax', () => {
     const h = heroFor(FIXTURES.relax, ctx());
     expect(h.minutes).toBe(12);
-    expect(h.sub).toBe(`Bus is 2 stops away · 4 min walk to ${stopName(4)}`);
+    expect(h.sub).toBe('2 stops away · 4 min walk');
     expect(h.announce).toBe('Leave in 12 minutes');
     expect(h.tone).toBe('relax');
   });
@@ -59,16 +59,16 @@ describe('heroFor copy', () => {
     const h = heroFor(FIXTURES.leave_now, ctx());
     expect(h.headline).toBe('Good time to head out');
     expect(h.subhead).toBeNull();
-    expect(h.sub).toBe(`An easy walk to ${stopName(4)} · bus in ~5 min`);
+    expect(h.sub).toBe('4 min walk · Bus in ~5 min');
     expect(h.tone).toBe('leave_now');
   });
 
   it('standby, missed, full, delayed, no_signal', () => {
     const standby = heroFor(FIXTURES.standby, ctx());
-    expect([standby.approx, standby.minutes, standby.suffix, standby.sub]).toEqual([true, 4, 'or later', `Bus is still waiting at ${stopName(2)}`]);
-    expect(heroFor(FIXTURES.missed, ctx()).sub).toBe('Next one in ~10 min');
+    expect([standby.approx, standby.minutes, standby.suffix, standby.sub]).toEqual([true, 4, 'or later', `Bus waiting at ${stopName(2)}`]);
+    expect(heroFor(FIXTURES.missed, ctx()).sub).toBe('Next in ~10 min');
     expect(heroFor(FIXTURES.full, ctx()).headline).toBe('This bus is full');
-    expect(heroFor(FIXTURES.delayed, ctx()).sub).toBe(`Still at ${stopName(3)} for 3+ min · walking takes 14 min`);
+    expect(heroFor(FIXTURES.delayed, ctx()).sub).toBe(`At ${stopName(3)} 3+ min · 14 min walk`);
     const noSignal = heroFor(FIXTURES.no_signal, ctx());
     expect(noSignal.headline).toBe('A bus comes every ~10 min');
     expect(noSignal.lowConfidence).toBe(true);
@@ -89,8 +89,8 @@ describe('heroFor copy', () => {
 
   it('a picked stop with no GPS has no walk time, so the copy does not invent one', () => {
     const plan: LeavePlan = { ...FIXTURES.relax, walk_sec: 0 };
-    expect(heroFor(plan, ctx()).sub).toBe(`Bus is 2 stops away · catch it at ${stopName(4)}`);
-    expect(heroFor({ ...FIXTURES.get_ready, walk_sec: 0 }, ctx()).sub).toBe('Start wrapping up, no rush');
+    expect(heroFor(plan, ctx()).sub).toBe('2 stops away');
+    expect(heroFor({ ...FIXTURES.get_ready, walk_sec: 0 }, ctx()).sub).toBe('No rush');
     const rows = explainFor(plan, ctx()).rows ?? [];
     expect(rows[1]).toEqual({ op: '−', label: `Your walk to ${stopName(4)} (location off, not counted)`, value: '0 min' });
   });
@@ -99,7 +99,7 @@ describe('heroFor copy', () => {
     const plan: LeavePlan = { ...FIXTURES.relax, leave_in_sec: 300, data_age_sec: 120 };
     const h = heroFor(plan, ctx({ offline: true, worldElapsedSec: 200 }));
     expect(h.headline).toBe('Last known: leave in ~5 min');
-    expect(h.sub).toBe("You're offline · showing saved info from 2 min ago");
+    expect(h.sub).toBe('Offline · Saved 2 min ago');
   });
 });
 

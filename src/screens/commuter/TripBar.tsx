@@ -19,7 +19,7 @@ export interface TripBarProps {
   inline?: boolean;
 }
 
-function formatClock(hhmm: string): string {
+export function formatClock(hhmm: string): string {
   const [h, m] = hhmm.split(':').map(Number);
   const suffix = h < 12 ? 'AM' : 'PM';
   return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, '0')} ${suffix}`;
