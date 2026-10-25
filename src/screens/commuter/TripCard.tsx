@@ -1,7 +1,8 @@
-import { ArrowUpRight, Bell, BellRing, BusFront, ChevronUp, ShieldCheck, Users } from 'lucide-react';
+import { ArrowUpRight, Bell, BellRing, BusFront, ChevronUp, Footprints, MapPin, ShieldCheck } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 import { CONFIG } from '../../contracts/config';
 import type { TripModel } from './view';
+import './trip-card.css';
 
 /** One local reminder at leave time: a notification if allowed, a vibration either way. Nothing leaves the phone. */
 function useReminder() {
@@ -28,6 +29,8 @@ function useReminder() {
   return { setFor, toggle };
 }
 
+const STEP_ICONS = [Footprints, MapPin, BusFront];
+
 export function TripCard({ model, onExplain }: { model: TripModel; onExplain: () => void }) {
   const { setFor, toggle } = useReminder();
   const [open, setOpen] = useState(false);
@@ -35,79 +38,65 @@ export function TripCard({ model, onExplain }: { model: TripModel; onExplain: ()
   const { steps, leaveInSec, stop, crowd } = model;
   const canRemind = steps != null && leaveInSec != null && leaveInSec > 60 && stop != null;
   const busAt = steps?.[2];
+  const waiting = busAt?.label === 'If bus leaves now';
 
   return (
-    <section aria-label="Your trip" className="rounded-t-[22px] border border-b-0 border-[var(--line)] bg-[var(--surface)] shadow-[0_-8px_24px_rgb(16_24_40_/_0.12)]">
+    <section aria-label="Your trip" className="trip-card" data-open={open}>
       <button
         type="button"
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((o) => !o)}
-        className="flex min-h-12 w-full items-center gap-2.5 px-3.5 py-2.5 text-left"
+        className="trip-card-toggle"
       >
-        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-[var(--tone-bg)] text-[var(--tone-fg)]" aria-hidden>
-          <BusFront size={18} />
-        </span>
-        <span className="min-w-0 flex-1 truncate font-bold">
-          {busAt ? (
-            <>
-              Bus <span className="tabular-nums">{busAt.time}</span>
-            </>
-          ) : (
-            'BGC Bus'
-          )}
-        </span>
-        {crowd && (
-          <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-[var(--ink-muted)]">
-            <Users size={15} aria-hidden />
-            {crowd}
+        <span className="trip-card-bus" aria-hidden><BusFront size={21} /></span>
+        <span className="trip-card-summary">
+          <span className="trip-card-arrival">{busAt ? `${waiting ? 'Earliest' : 'Arrives'} ~${busAt.time}` : 'Your trip'}</span>
+          <span className="trip-card-caption">
+            {busAt ? `${waiting ? 'If the bus leaves now' : 'At your stop'}${crowd ? ` · ${crowd}` : ''}` : 'Live trip times unavailable'}
           </span>
-        )}
-        <ChevronUp size={18} aria-hidden className={`shrink-0 text-[var(--ink-muted)] transition-transform duration-200 ${open ? '' : 'rotate-180'}`} />
+        </span>
         {setFor && <BellRing size={16} aria-label="Reminder set" className="shrink-0 text-[var(--map-route)]" />}
+        <span className="trip-card-arrow" aria-hidden><ChevronUp size={19} /></span>
       </button>
 
-      {open && (
-        <div id={panelId} className="px-3.5 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-          {steps && (
-            <ol className="grid grid-cols-3 gap-0 border-t border-[var(--line)] pt-3">
-              {steps.map((s, i) => (
-                <li key={s.label} className="min-w-0 pr-2 last:pr-0">
-                  <div className="flex items-center" aria-hidden>
-                    <span className="size-2 shrink-0 rounded-full bg-[var(--map-route)]" />
-                    {i < steps.length - 1 && <span className="ml-0 h-0.5 flex-1 bg-[var(--line)]" />}
-                  </div>
-                  <p className="mt-1.5 text-base font-bold tabular-nums">{s.time}</p>
-                  <p className="text-[0.8125rem] leading-snug text-[var(--ink-muted)]">{s.label}</p>
-                </li>
-              ))}
-            </ol>
-          )}
+      <div id={panelId} className="trip-card-reveal" aria-hidden={!open} inert={!open}>
+        <div className="trip-card-clip">
+          <div className="trip-card-content">
+            {steps ? (
+              <ol className="trip-timeline" aria-label="Your trip timeline">
+                {steps.map((step, i) => {
+                  const Icon = STEP_ICONS[i];
+                  const [clock, period] = step.time.split(' ');
+                  const title = i === 0 ? 'Leave for your stop' : i === 1 ? 'Reach your stop' : waiting ? 'Earliest bus arrival' : 'Your bus arrives';
+                  const detail = i === 0 ? (step.label === 'Leave' ? 'Walking time not estimated' : step.label) : i === 1 ? stop : waiting ? 'If the bus departs now' : stop;
+                  return (
+                    <li key={i} className="trip-timeline-step" data-final={i === 2}>
+                      <p className="trip-step-time" aria-label={`${i === 2 ? 'About ' : ''}${step.time}`}>
+                        <span>{i === 2 && '~'}{clock}</span><span className="trip-step-period">{period}</span>
+                      </p>
+                      <span className="trip-step-track" aria-hidden><span className="trip-step-marker"><Icon size={15} /></span></span>
+                      <div className="trip-step-copy"><p className="trip-step-title">{title}</p><p className="trip-step-detail">{detail}</p></div>
+                    </li>
+                  );
+                })}
+              </ol>
+            ) : <p className="trip-empty">Connect to live bus data to see your trip timeline.</p>}
 
-          {canRemind && (
-            <button
-              type="button"
-              aria-pressed={setFor != null}
-              onClick={() => void toggle(leaveInSec, steps[0].time, stop)}
-              className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--tone-bg)] text-[0.9375rem] font-bold text-[var(--tone-fg)]"
-            >
-              {setFor ? <BellRing size={17} aria-hidden /> : <Bell size={17} aria-hidden />}
-              {setFor ? `Reminder · ${setFor}` : 'Remind me to leave'}
-            </button>
-          )}
+            {canRemind && (
+              <button type="button" aria-pressed={setFor != null} onClick={() => void toggle(leaveInSec, steps[0].time, stop)} className="trip-reminder">
+                {setFor ? <BellRing size={18} aria-hidden /> : <Bell size={18} aria-hidden />}
+                {setFor ? `Reminder set for ${setFor}` : 'Remind me to leave'}
+              </button>
+            )}
 
-          <div className="mt-1 flex flex-wrap items-center justify-between gap-x-3 text-[0.8125rem]">
-            <button type="button" onClick={onExplain} className="inline-flex min-h-11 items-center gap-1 font-semibold">
-              See the math
-              <ArrowUpRight size={15} aria-hidden />
-            </button>
-            <span className="inline-flex items-center gap-1.5 text-[var(--ink-muted)]">
-              <ShieldCheck size={15} aria-hidden />
-              Location stays on your phone
-            </span>
+            <div className="trip-card-footer">
+              <button type="button" onClick={onExplain}>See the math <ArrowUpRight size={14} aria-hidden /></button>
+              <span><ShieldCheck size={13} aria-hidden /> Location stays on your phone</span>
+            </div>
           </div>
         </div>
-      )}
+      </div>
     </section>
   );
 }

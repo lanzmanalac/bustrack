@@ -1,0 +1,91 @@
+.trip-picker {
+  position: relative;
+  z-index: 30;
+  padding: 12px 16px 0;
+}
+
+.trip-picker-trigger {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 8px 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgb(16 24 40 / 0.08);
+}
+
+.trip-picker-trigger[data-settled='true'] {
+  width: fit-content;
+  max-width: 100%;
+  min-height: 44px;
+  margin-left: auto;
+  gap: 6px;
+  border-radius: 999px;
+}
+
+.trip-picker-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 16px;
+  left: 16px;
+  max-height: min(480px, calc(100dvh - 120px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--ink);
+  transform-origin: top center;
+  box-shadow: 0 12px 36px rgb(16 24 40 / 0.18), 0 2px 8px rgb(16 24 40 / 0.06);
+}
+
+/* The whole destination field already has a visible focus ring. */
+.trip-picker-panel input:focus-visible {
+  outline: none;
+}
+
+.trip-picker-close {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  color: var(--ink-muted);
+}
+
+.trip-picker-close:hover {
+  background: var(--page-bg);
+}
+
+.trip-route-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.trip-route-option {
+  min-width: 0;
+  min-height: 76px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  text-align: left;
+  color: var(--ink);
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.trip-route-option:hover {
+  background: var(--page-bg);
+}
+
+.trip-route-option[aria-selected='true'] {
+  border-color: var(--tone-accent);
+  background: var(--tone-bg);
+  color: var(--tone-fg);
+}

@@ -1,16 +1,3 @@
-.hero-heading {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(96px, 30vw, 128px);
-  align-items: center;
-  gap: 8px;
-  min-height: 128px;
-}
-
-.hero-heading-copy {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
 .pigeon-mascot {
   display: block;
   width: 100%;
@@ -21,37 +8,94 @@
   mix-blend-mode: multiply;
 }
 
-.pigeon-strip {
+.pigeon-art {
   display: block;
-  width: 400%;
-  max-width: none;
+  width: 100%;
   height: 100%;
   filter: contrast(1.12);
 }
 
-.pigeon-strip[data-animate='true'] {
-  animation: pigeon-poses 4.8s step-end both;
+.pigeon-body {
+  animation: pigeon-breathe 3.8s ease-in-out infinite both;
+  transform-box: view-box;
 }
 
-/* Play once on a state change, then hold the last expression. */
-@keyframes pigeon-poses {
-  0% {
-    transform: translateX(0);
-  }
-  25% {
-    transform: translateX(-25%);
+.pigeon-head {
+  animation: pigeon-look 6.4s ease-in-out infinite;
+  transform-box: view-box;
+}
+
+.pigeon-blink {
+  opacity: 0;
+  animation: pigeon-blink 5.6s linear infinite;
+}
+
+.pigeon-mascot[data-pose='missed'] .pigeon-body {
+  animation-name: pigeon-sigh;
+  animation-duration: 5.6s;
+}
+
+.pigeon-mascot[data-pose='offline'] .pigeon-body {
+  animation-name: pigeon-shrug;
+  animation-duration: 4.8s;
+}
+
+.pigeon-mascot[data-pose='full'] .pigeon-body {
+  animation-name: pigeon-squeeze;
+  animation-duration: 4.2s;
+}
+
+.pigeon-mascot[data-pose='location'] .pigeon-body,
+.pigeon-mascot[data-pose='stale'] .pigeon-body {
+  animation-name: pigeon-ponder;
+  animation-duration: 4.6s;
+}
+
+@keyframes pigeon-breathe {
+  0%,
+  100% {
+    transform: translateY(0) scaleY(1);
   }
   50% {
-    transform: translateX(-50%);
+    transform: translateY(-3px) scaleY(1.025);
   }
-  75%,
-  100% {
-    transform: translateX(-75%);
-  }
+}
+
+@keyframes pigeon-look {
+  0%, 25%, 100% { transform: rotate(0deg); }
+  45%, 60% { transform: rotate(-2.5deg); }
+  80% { transform: rotate(1deg); }
+}
+
+@keyframes pigeon-ponder {
+  0%, 100% { transform: rotate(-0.8deg) translateY(0); }
+  50% { transform: rotate(0.8deg) translateY(-3px); }
+}
+
+@keyframes pigeon-sigh {
+  0%, 100% { transform: rotate(0deg) scaleY(1); }
+  50% { transform: rotate(1.5deg) scaleY(0.975); }
+}
+
+@keyframes pigeon-shrug {
+  0%, 100% { transform: translateY(0) rotate(-0.6deg); }
+  50% { transform: translateY(-6px) rotate(0.8deg); }
+}
+
+@keyframes pigeon-squeeze {
+  0%, 100% { transform: scaleX(1) scaleY(1); }
+  50% { transform: scaleX(0.97) scaleY(1.02); }
+}
+
+@keyframes pigeon-blink {
+  0%, 89%, 94%, 100% { opacity: 0; }
+  91%, 92% { opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pigeon-strip[data-animate='true'] {
+  .pigeon-body,
+  .pigeon-head,
+  .pigeon-blink {
     animation: none;
   }
 }
