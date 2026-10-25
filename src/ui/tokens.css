@@ -1,0 +1,132 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Public+Sans:wght@400;500;600;700&display=swap');
+
+/* Light mode first: readable in sunlight. Every tone pairs with a text label in the UI. */
+.commuter {
+  --page-bg: #f6f5f1;
+  --surface: #ffffff;
+  --ink: #101828;
+  --ink-muted: #475467;
+  --line: #e4e2dc;
+  --focus: #1d4ed8;
+
+  --chip-good-bg: #e1f3ee;
+  --chip-good-fg: #0b5a4f;
+  --chip-warn-bg: #fcebc4;
+  --chip-warn-fg: #6e4300;
+  --chip-bad-bg: #fde3da;
+  --chip-bad-fg: #8f2a0e;
+  --chip-muted-bg: #f0f1f3;
+  --chip-muted-fg: #475467;
+
+  --font-display: 'Barlow Condensed', 'Roboto Condensed', 'Arial Narrow', sans-serif;
+  --font-ui: 'Public Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  font-family: var(--font-ui);
+  background: var(--page-bg);
+  color: var(--ink);
+  text-align: left;
+  color-scheme: light;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.commuter :focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.font-display {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+[data-tone='relax'] {
+  --tone-bg: #ddf2ec;
+  --tone-fg: #073b35;
+  --tone-muted: #23564f;
+  --tone-accent: #0e7a6d;
+  --tone-pill: rgb(14 122 109 / 0.12);
+}
+[data-tone='get_ready'] {
+  --tone-bg: #fcebc4;
+  --tone-fg: #3d2300;
+  --tone-muted: #613b00;
+  --tone-accent: #b4610a;
+  --tone-pill: rgb(180 97 10 / 0.14);
+}
+[data-tone='leave_now'] {
+  --tone-bg: #c4360f;
+  --tone-fg: #ffffff;
+  --tone-muted: #fff1ec;
+  --tone-accent: #ffffff;
+  --tone-pill: rgb(255 255 255 / 0.2);
+}
+[data-tone='missed'] {
+  --tone-bg: #e3e7ec;
+  --tone-fg: #1f2a37;
+  --tone-muted: #414b5a;
+  --tone-accent: #475467;
+  --tone-pill: rgb(71 84 103 / 0.12);
+}
+[data-tone='low'] {
+  --tone-bg: #eef0f2;
+  --tone-fg: #1f2a37;
+  --tone-muted: #414b5a;
+  --tone-accent: #6b7280;
+  --tone-pill: rgb(107 114 128 / 0.14);
+}
+
+.tone-surface {
+  background-color: var(--tone-bg);
+  color: var(--tone-fg);
+  transition:
+    background-color 400ms ease,
+    color 400ms ease;
+}
+.tone-surface[data-low-confidence='true'] {
+  outline: 2px dashed #7b8494;
+  outline-offset: -6px;
+}
+
+.live-dot {
+  animation: live-pulse 1.6s ease-in-out infinite;
+}
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.bus-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: bus-pulse 1.2s ease-out infinite;
+}
+@keyframes bus-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+.trip-bar-fade {
+  background: linear-gradient(to top, var(--page-bg) 70%, rgb(246 245 241 / 0));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .commuter *,
+  .commuter *::before,
+  .commuter *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
