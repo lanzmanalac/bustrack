@@ -37,7 +37,8 @@ export function Hero({ model, fresh, onExplain }: { model: HeroModel; fresh: Chi
           </div>
         ) : isTakeover ? (
           <div className="font-display text-[min(15vw,3.75rem)] leading-[0.95] font-bold">
-            {model.headline} <span className="tracking-wide uppercase">{model.subhead}</span>
+            <div>{model.headline}</div>
+            <div className="mt-1 text-[0.5em] tracking-wide uppercase">{model.subhead}</div>
           </div>
         ) : (
           <div className="font-display text-[min(11vw,2.75rem)] leading-[1.02] font-bold text-balance">{model.headline}</div>
