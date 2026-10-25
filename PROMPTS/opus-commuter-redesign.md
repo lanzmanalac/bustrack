@@ -29,8 +29,8 @@ Ignore the previous Section 11.2 layout and the current screen’s schematic `Ro
 │     (edge-to-edge)          │
 │                             │
 ├─────────────────────────────┤
-│  [ primary actions ]        │  ← bottom: app buttons / controls
-│  [ secondary actions ]      │
+│  ✦ Where to? e.g. High…  ↑  │  ← bottom: KEEP the existing chatbot bar
+│  🔒 Your location stays…    │
 └─────────────────────────────┘
 ```
 
@@ -60,22 +60,31 @@ This is an intentional override of the “no full-screen map” anti-pattern in 
   2. propose the smallest dependency in the PR and gate it so the app still builds without keys.
 - Until All-arounder’s real `<RouteLine/>` / map owns this slot, replace `RouteLineSlot` with this new 3D map stage inside PM-owned folders. Keep a clear component boundary so All-arounder can later swap the engine.
 
-### 3) Bottom — App buttons
+### 3) Bottom — Keep the existing “chatbot” bar (do not redesign)
 
-A clear control dock under the map. Not a junk drawer. Primary actions the commuter actually needs:
+The PM already likes the current bottom control. **Reuse `TripBar` as-is** (visual + behavior). Do not invent a new button dock, icon row, or FAB cluster.
 
-Must-have buttons / controls:
-- **Where to?** (opens/focuses destination input — keep the AI trip flow UI; editable chips, clarify when unsure)
-- **Explain** (same as tapping the number — open the math sheet)
-- When Plan B exists: one **primary Plan B CTA** (e.g. “Take next bus” / “Walk 14 min”) plus a way to see other options
-- Persistent privacy affordance (lock): “Your location stays on this phone”
+Locked visual (match the current component):
+- White pill input with soft shadow
+- Purple sparkle icon on the left
+- Placeholder: **“Where to? e.g. High Street by 9”**
+- Grey circular submit with upward arrow on the right
+- Under it: lock icon + **“Your location stays on this phone”**
 
-Optional if it still feels calm:
-- Freshness as a single quiet label near the bottom or as a small status under the hero — not a row of three competing chips in the first glance
+Keep working trip-bar behavior:
+- Editable destination / arrive-by chips after a match
+- “Which stop do you mean?” clarify picker when unsure
+- Never show a fake AI confidence score from the keyword stub
+
+Where other actions live (so you don’t add bottom buttons):
+- **Explain** → tap the leave-time number (existing bottom sheet)
+- **Plan B** → appears only when needed as a sheet/card *above* the chatbot bar (or over the lower map), not as permanent bottom buttons
+- **Freshness** → one quiet label under the hero or on the map chrome — not a chip strip that competes with the number
 
 Avoid:
+- Replacing or restyling the chatbot pill
 - Floating badges/stickers on top of the 3D map
-- Card spam
+- Card spam / extra bottom button rows
 - More than one motion competing with the map
 - Fake passenger counts
 - Dashboards, settings walls, sign-up
@@ -114,10 +123,10 @@ Special moments to preserve:
 
 ## Definition of done
 
-1. First viewport reads as one composition: **Leave in X minutes → big 3D route map → buttons under it**
+1. First viewport reads as one composition: **Leave in X minutes → big 3D route map → existing Where-to chatbot bar**
 2. 5-second test still passes: stranger can say when to leave and why
 3. Every `?state=` fixture still looks intentional
-4. Explain sheet, Plan B, trip bar, privacy, toast, leave-now takeover still work
+4. Explain sheet, Plan B, **unchanged TripBar**, privacy, toast, leave-now takeover still work
 5. `tsc`, lint, build, and view tests pass
 6. Screenshots at 390×844 for at least: `relax`, `leave_now`, `standby`, `delayed`, `no_signal`
 7. Short PR note listing any PM-owned files changed and any dependency ask for the group
