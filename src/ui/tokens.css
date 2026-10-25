@@ -57,12 +57,12 @@
   --map-route: #b4610a;
 }
 [data-tone='leave_now'] {
-  --tone-bg: #c4360f;
-  --tone-fg: #ffffff;
-  --tone-muted: #fff1ec;
-  --tone-accent: #ffffff;
-  --tone-pill: rgb(255 255 255 / 0.2);
-  --map-route: #c4360f;
+  --tone-bg: #ffe2d3;
+  --tone-fg: #4a1d0a;
+  --tone-muted: #6e3417;
+  --tone-accent: #c2410c;
+  --tone-pill: rgb(194 65 12 / 0.12);
+  --map-route: #d4541c;
 }
 [data-tone='missed'] {
   --tone-bg: #e3e7ec;

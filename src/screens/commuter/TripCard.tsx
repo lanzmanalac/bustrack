@@ -17,7 +17,7 @@ function useReminder() {
       () => {
         navigator.vibrate?.(200);
         if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification('Alis na! Time to leave', { body: `Walk to ${stop} now to catch the bus.` });
+          new Notification('Good time to head out', { body: `An easy walk to ${stop} gets you to the bus.` });
         }
         setSetFor(null);
       },

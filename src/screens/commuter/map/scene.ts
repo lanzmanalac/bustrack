@@ -56,7 +56,7 @@ const COLOR = {
   trees: ['#a6cc9b', '#8fbf86', '#b3d4a8'],
   top: [251, 252, 253] as const,
   lit: [238, 241, 244] as const,
-  shade: [212, 218, 226] as const,
+  shade: [224, 229, 234] as const,
   haze: [242, 244, 246] as const,
 };
 
@@ -244,7 +244,7 @@ export function buildScene(routeStops: Stop[], opts: SceneOptions): Scene {
         ];
         const r = hash(seed + 3 + n * 5);
         const falloff = clamp((dRoad - 8) / 40, 0.16, 1);
-        const h = (3 + r ** 1.5 * 20) * falloff + 1.5;
+        const h = (2 + r ** 1.5 * 11) * falloff + 1;
         const depth = project({ ...toWorld((l0 + l1) / 2, b0 + BLOCK.v / 2), z: 0 }).depth;
         dMin = Math.min(dMin, depth);
         dMax = Math.max(dMax, depth);

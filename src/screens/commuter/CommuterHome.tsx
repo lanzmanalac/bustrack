@@ -84,7 +84,7 @@ export function CommuterScreen({ plan, buses, forceOffline, onPickStop, trip, to
 
   useEffect(() => {
     // Browsers block vibration until the user has tapped the page once.
-    if (takeover && navigator.userActivation?.hasBeenActive) navigator.vibrate?.(200);
+    if (takeover && navigator.userActivation?.hasBeenActive) navigator.vibrate?.(60);
   }, [takeover]);
 
   return (

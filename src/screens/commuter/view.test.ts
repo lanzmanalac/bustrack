@@ -57,16 +57,16 @@ describe('heroFor copy', () => {
 
   it('leave_now takeover', () => {
     const h = heroFor(FIXTURES.leave_now, ctx());
-    expect(h.headline).toBe('Alis na!');
-    expect(h.subhead).toBe('Leave now');
-    expect(h.sub).toBe(`Walk to ${stopName(4)} · bus arrives in ~5 min`);
+    expect(h.headline).toBe('Good time to head out');
+    expect(h.subhead).toBeNull();
+    expect(h.sub).toBe(`An easy walk to ${stopName(4)} · bus in ~5 min`);
     expect(h.tone).toBe('leave_now');
   });
 
   it('standby, missed, full, delayed, no_signal', () => {
     const standby = heroFor(FIXTURES.standby, ctx());
     expect([standby.approx, standby.minutes, standby.suffix, standby.sub]).toEqual([true, 4, 'or later', `Bus is still waiting at ${stopName(2)}`]);
-    expect(heroFor(FIXTURES.missed, ctx()).sub).toBe('Next bus in ~10 min');
+    expect(heroFor(FIXTURES.missed, ctx()).sub).toBe('Next one in ~10 min');
     expect(heroFor(FIXTURES.full, ctx()).headline).toBe('This bus is full');
     expect(heroFor(FIXTURES.delayed, ctx()).sub).toBe(`Still at ${stopName(3)} for 3+ min · walking takes 14 min`);
     const noSignal = heroFor(FIXTURES.no_signal, ctx());
@@ -90,7 +90,7 @@ describe('heroFor copy', () => {
   it('a picked stop with no GPS has no walk time, so the copy does not invent one', () => {
     const plan: LeavePlan = { ...FIXTURES.relax, walk_sec: 0 };
     expect(heroFor(plan, ctx()).sub).toBe(`Bus is 2 stops away · catch it at ${stopName(4)}`);
-    expect(heroFor({ ...FIXTURES.get_ready, walk_sec: 0 }, ctx()).sub).toBe('Start packing up');
+    expect(heroFor({ ...FIXTURES.get_ready, walk_sec: 0 }, ctx()).sub).toBe('Start wrapping up, no rush');
     const rows = explainFor(plan, ctx()).rows ?? [];
     expect(rows[1]).toEqual({ op: '−', label: `Your walk to ${stopName(4)} (location off, not counted)`, value: '0 min' });
   });

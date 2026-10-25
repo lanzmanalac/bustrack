@@ -74,9 +74,9 @@ export interface PlanBModel {
 const ACCENT: Record<ViewState, string | null> = {
   relax: 'Chill ka muna',
   get_ready: 'Maghanda na',
-  leave_now: null,
+  leave_now: 'Dahan-dahan lang',
   standby: 'Naghihintay pa ang bus',
-  missed: 'Hindi na aabot',
+  missed: 'Okay lang, may susunod',
   full: 'Puno na',
   delayed: 'Na-delay ang bus',
   no_signal: 'Walang live na bus',
@@ -92,14 +92,14 @@ export const PLAN_B_LABEL: Record<PlanB['kind'], string> = {
 };
 
 const PLAN_B_REASON: Record<PlanB['reason'], string> = {
-  missed: 'You missed this bus',
+  missed: 'This bus has gone',
   delayed: 'Bus is running late',
   full: 'Bus is full',
   no_signal: 'No live bus',
 };
 
 const PLAN_B_DEFAULT_WHY: Record<PlanB['reason'], string> = {
-  missed: 'The bus is already past the point where you can catch it.',
+  missed: 'It will be gone before you get there, and that’s okay.',
   delayed: 'The bus has been stopped longer than usual.',
   full: 'The driver marked this bus full.',
   no_signal: 'No live bus, so this uses the usual gap between buses.',
@@ -217,18 +217,17 @@ export function heroFor(plan: LeavePlan, ctx: ViewContext): HeroModel {
       const sub =
         state === 'relax'
           ? `${stopsAwaySentence(plan.stops_away)} · ${walk ? `${walk} min walk to` : 'catch it at'} ${stop}`
-          : `Start packing up${walk ? ` · ${walk} min walk` : ''}`;
+          : `Start wrapping up, no rush${walk ? ` · ${walk} min walk` : ''}`;
       return { ...base, minutes: m, sub, announce: `Leave in ${plural(m, 'minute')}` };
     }
     case 'leave_now': {
       const b = breakdown(plan, ctx);
-      const eta = b ? ` · bus arrives in ~${b.busMin} min` : '';
+      const eta = b ? ` · bus in ~${b.busMin} min` : '';
       return {
         ...base,
-        headline: 'Alis na!',
-        subhead: 'Leave now',
-        sub: `Walk to ${stop}${eta}`,
-        announce: 'Leave now. Alis na!',
+        headline: 'Good time to head out',
+        sub: `An easy walk to ${stop}${eta}`,
+        announce: 'Good time to head out',
       };
     }
     case 'standby': {
@@ -238,9 +237,9 @@ export function heroFor(plan: LeavePlan, ctx: ViewContext): HeroModel {
       if (leaveIn < 60) {
         return {
           ...base,
-          headline: 'Leave now',
-          sub: `Bus is still waiting at ${busStop} · it can leave any moment`,
-          announce: `Leave now. Bus is still waiting at ${busStop}`,
+          headline: 'Good time to head out',
+          sub: `Bus is still at ${busStop} · heading over now keeps it easy`,
+          announce: `Good time to head out. Bus is still at ${busStop}`,
         };
       }
       const m = leaveMinutes(leaveIn);
@@ -254,7 +253,7 @@ export function heroFor(plan: LeavePlan, ctx: ViewContext): HeroModel {
       };
     }
     case 'missed':
-      return { ...base, headline: "You'll miss this one", sub: `Next bus in ~${nextBus} min`, announce: `You'll miss this bus. Next bus in about ${nextBus} minutes` };
+      return { ...base, headline: 'The next bus is a better fit', sub: `Next one in ~${nextBus} min`, announce: `The next bus is a better fit. It comes in about ${nextBus} minutes` };
     case 'full':
       return {
         ...base,
@@ -405,12 +404,12 @@ export function explainFor(plan: LeavePlan, ctx: ViewContext): ExplainModel {
     case 'get_ready':
       return { title: 'How we got this', rows: rows(`Bus reaches ${stop}`), result: b ? `Leave in ${b.leaveMin} min` : null, note: null, source };
     case 'leave_now':
-      return { title: 'How we got this', rows: rows(`Bus reaches ${stop}`), result: 'Leave now', note: null, source };
+      return { title: 'How we got this', rows: rows(`Bus reaches ${stop}`), result: 'Head out now', note: null, source };
     case 'standby':
       return {
         title: 'If the bus left right now',
         rows: rows(`Bus reaches ${stop}`),
-        result: b ? (b.leaveIn < 60 ? 'Leave now' : `Leave in ~${b.leaveMin} min or later`) : null,
+        result: b ? (b.leaveIn < 60 ? 'Head out now' : `Leave in ~${b.leaveMin} min or later`) : null,
         note: `The bus is still waiting at ${busStop}. The countdown starts when the driver taps Leaving now.`,
         source,
       };

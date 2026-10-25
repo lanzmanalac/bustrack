@@ -26,28 +26,25 @@ export function Hero({ model, fresh, onExplain }: { model: HeroModel; fresh: Chi
         className="hero-button mx-2 mt-3 block w-[calc(100%-1rem)] rounded-[20px] px-3 py-2 text-left"
       >
         {isNumber ? (
-          <div className="font-display flex flex-wrap items-baseline gap-x-2.5 text-[min(15vw,3.75rem)] leading-none font-bold">
+          <div className="flex flex-wrap items-baseline gap-x-2 text-[min(12vw,3rem)] leading-tight font-semibold tracking-tight">
             <span>Leave in</span>
             <span className="inline-flex items-baseline">
               {model.approx && <span>~</span>}
               <RollingNumber value={model.minutes!} />
             </span>
             <span>min</span>
-            {model.suffix && <span className="text-[0.45em] font-semibold">{model.suffix}</span>}
+            {model.suffix && <span className="text-[0.45em] font-medium">{model.suffix}</span>}
           </div>
         ) : isTakeover ? (
-          <div className="font-display text-[min(15vw,3.75rem)] leading-[0.95] font-bold">
-            <div>{model.headline}</div>
-            <div className="mt-1 text-[0.5em] tracking-wide uppercase">{model.subhead}</div>
-          </div>
+          <div className="text-[min(10vw,2.5rem)] leading-tight font-semibold tracking-tight text-balance">{model.headline}</div>
         ) : (
-          <div className="font-display text-[min(11vw,2.75rem)] leading-[1.02] font-bold text-balance">{model.headline}</div>
+          <div className="text-[min(9vw,2.25rem)] leading-tight font-semibold tracking-tight text-balance">{model.headline}</div>
         )}
       </button>
 
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-5 pt-1 pb-8 text-[0.9375rem] font-medium text-[var(--tone-muted)]">
         <p className="text-pretty">
-          {model.accent && !isTakeover && <i className="font-semibold">{model.accent}. </i>}
+          {model.accent && <i className="font-semibold">{model.accent}. </i>}
           {model.sub}
         </p>
         {fresh && (
