@@ -93,11 +93,12 @@ export function CommuterScreen({ plan, buses, forceOffline, onPickStop, trip, to
   const map = mapFor(plan, ctx, ROUTE.stops, buses);
   const explain = explainFor(plan, ctx);
   const tripCard = tripFor(plan, ctx, realNowMs());
+  const busContext = heroDetailsFor(plan, ctx, hero.state).find((detail) => detail.kind === 'bus' || detail.kind === 'status')?.text ?? null;
   const planB = offline ? null : planBFor(plan);
   const isTripCard = hero.state !== 'location_off' && !planB;
   // The trip drawer overlays the map. A stable inset avoids rebuilding the scene
   // and resetting its zoom on every frame while the drawer expands.
-  const mapOverlayHeight = isTripCard ? 80 : overlayHeight;
+  const mapOverlayHeight = isTripCard ? 96 : overlayHeight;
   const toast = useLiveTapToast(plan.phase, plan.bus_at_stop?.name ?? null);
   const takeover = hero.state === 'leave_now';
 
@@ -119,14 +120,14 @@ export function CommuterScreen({ plan, buses, forceOffline, onPickStop, trip, to
               onPickRoute={setRouteId}
               trip={{ ...trip, verdict }}
             />
-            <Hero model={hero} details={heroDetailsFor(plan, ctx, hero.state)} fresh={meta?.fresh ?? null} onExplain={() => setExplainOpen(true)} />
+            <Hero model={hero} fresh={meta?.fresh ?? null} onExplain={() => setExplainOpen(true)} />
           </section>
 
           <main
             className="relative -mt-5 flex flex-1 overflow-hidden rounded-t-[26px] bg-[#f3f4f0]"
             style={{ minHeight: MAP_MIN_ROUTE + mapOverlayHeight + OVERLAY_GAP }}
           >
-            <RouteMap3D stops={ROUTE.stops} model={map} pulse={takeover} insetBottom={mapOverlayHeight + OVERLAY_GAP} />
+            <RouteMap3D stops={ROUTE.stops} model={map} pulse={takeover} fresh={meta?.fresh ?? null} insetBottom={mapOverlayHeight + OVERLAY_GAP} />
             {/* Flush to the bottom edge: stop picker, Plan B when needed, or the trip timeline. */}
             <div ref={overlayRef} className={`pointer-events-none absolute inset-x-0 bottom-0 z-20 ${isTripCard ? 'max-h-full overflow-y-auto overscroll-contain' : ''}`}>
               <AnimatePresence mode="wait">
@@ -141,7 +142,7 @@ export function CommuterScreen({ plan, buses, forceOffline, onPickStop, trip, to
                   </div>
                 ) : (
                   <div key="trip" className="pointer-events-auto">
-                    <TripCard model={tripCard} onExplain={() => setExplainOpen(true)} />
+                    <TripCard model={tripCard} busContext={busContext} onExplain={() => setExplainOpen(true)} />
                   </div>
                 )}
               </AnimatePresence>

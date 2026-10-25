@@ -97,12 +97,34 @@
   outline-offset: -2px;
 }
 
-.route-map[data-stale='true'] svg {
+.route-map[data-stale='true'] .map-city-layer,
+.route-map[data-stale='true'] .map-bus-layer {
   filter: saturate(0.3);
   opacity: 0.88;
 }
 .route-map {
   --map-land: #e9ece4;
+}
+.map-freshness {
+  position: absolute;
+  top: 24px;
+  left: 16px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+  color: var(--ink-muted);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  text-shadow: 0 1px 2px #ffffff, 0 0 5px #ffffff;
+}
+.map-freshness > span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
 }
 .map-street {
   font-family: var(--font-ui);

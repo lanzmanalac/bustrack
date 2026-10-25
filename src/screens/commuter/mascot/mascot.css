@@ -30,6 +30,14 @@
   animation: pigeon-blink 5.6s linear infinite;
 }
 
+.pigeon-mascot[data-pose='relax'] .pigeon-body {
+  animation-duration: 6.4s;
+}
+
+.pigeon-mascot[data-pose='relax'] .pigeon-head {
+  animation: pigeon-rest 8s ease-in-out infinite;
+}
+
 .pigeon-mascot[data-pose='missed'] .pigeon-body {
   animation-name: pigeon-sigh;
   animation-duration: 5.6s;
@@ -67,6 +75,11 @@
   80% { transform: rotate(1deg); }
 }
 
+@keyframes pigeon-rest {
+  0%, 100% { transform: rotate(-0.4deg); }
+  50% { transform: rotate(0.6deg); }
+}
+
 @keyframes pigeon-ponder {
   0%, 100% { transform: rotate(-0.8deg) translateY(0); }
   50% { transform: rotate(0.8deg) translateY(-3px); }
@@ -96,7 +109,7 @@
   .pigeon-body,
   .pigeon-head,
   .pigeon-blink {
-    animation: none;
+    animation: none !important;
   }
 }
 

@@ -31,7 +31,7 @@ function useReminder() {
 
 const STEP_ICONS = [Footprints, MapPin, BusFront];
 
-export function TripCard({ model, onExplain }: { model: TripModel; onExplain: () => void }) {
+export function TripCard({ model, busContext, onExplain }: { model: TripModel; busContext?: string | null; onExplain: () => void }) {
   const { setFor, toggle } = useReminder();
   const [open, setOpen] = useState(false);
   const panelId = useId();
@@ -53,7 +53,8 @@ export function TripCard({ model, onExplain }: { model: TripModel; onExplain: ()
         <span className="trip-card-summary">
           <span className="trip-card-arrival">{busAt ? `${waiting ? 'Earliest' : 'Arrives'} ~${busAt.time}` : 'Your trip'}</span>
           <span className="trip-card-caption">
-            {busAt ? `${waiting ? 'If the bus leaves now' : 'At your stop'}${crowd ? ` · ${crowd}` : ''}` : 'Live trip times unavailable'}
+            {busContext?.replace(/\.$/, '') ?? (busAt ? waiting ? 'If the bus leaves now' : 'At your stop' : 'Live trip times unavailable')}
+            {crowd && ` · ${crowd}`}
           </span>
         </span>
         {setFor && <BellRing size={16} aria-label="Reminder set" className="shrink-0 text-[var(--map-route)]" />}

@@ -1,8 +1,8 @@
-import { Minus, Plus } from 'lucide-react';
+import { Footprints, Minus, Plus } from 'lucide-react';
 import { animate, useMotionValue, useReducedMotion } from 'motion/react';
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import type { Stop } from '../../../contracts/types';
-import type { MapModel } from '../view';
+import type { ChipModel, MapModel } from '../view';
 import { buildScene, type Scene, type Vec2, type Vec3 } from './scene';
 
 /**
@@ -13,6 +13,7 @@ export interface RouteMap3DProps {
   stops: Stop[];
   model: MapModel;
   pulse: boolean;
+  fresh?: ChipModel | null;
   /** Space at the bottom covered by the trip bar, kept clear of the route. */
   insetBottom: number;
 }
@@ -21,6 +22,7 @@ const INSET_TOP = 34;
 /** In screen pixels near the route; the scene converts them to world metres. */
 const BUS = { length: 24, width: 10, height: 8.5, lift: 0.8 };
 const ROUTE_INK = '#23303f';
+const GPS_BLUE = '#1a73e8';
 const ZOOM_MAX = 3.2;
 const ZOOM_MIN = 1;
 
@@ -217,13 +219,14 @@ function Overlay({
   const bus = hasBus ? scene.pointAt(pos) : null;
   const faces = bus ? busFaces(scene, bus.world, bus.heading) : null;
   const user = model.userIdx >= 0 ? scene.stops[model.userIdx] : null;
+  const youPoint = model.walkMin != null ? scene.you : null;
 
-  type Label = { x: number; y: number; text: string; strong: boolean; anchor: 'start' | 'middle' | 'end'; dark?: boolean; minor?: boolean };
-  type Box = Pick<Label, 'x' | 'y' | 'anchor'> & { text?: string; minor?: boolean };
+  type Label = { x: number; y: number; text: string; strong: boolean; anchor: 'start' | 'middle' | 'end'; dark?: boolean; minor?: boolean; blue?: boolean; walk?: boolean };
+  type Box = Pick<Label, 'x' | 'y' | 'anchor'> & { text?: string; minor?: boolean; blue?: boolean; walk?: boolean };
   const labels: Label[] = [];
   // Minor stop labels are measured by their text; the main labels keep the original 110px box.
   const span = (l: Box) => {
-    const w = l.minor && l.text ? l.text.length * 6.2 + 14 : 110;
+    const w = l.minor && l.text ? l.text.length * 6.2 + 14 : l.blue && l.text ? l.text.length * 7.4 + 18 + (l.walk ? 18 : 0) : 110;
     return l.anchor === 'start' ? [l.x, l.x + w] : l.anchor === 'end' ? [l.x - w, l.x] : [l.x - w / 2, l.x + w / 2];
   };
   const clashes = (l: Box, others: Box[]) =>
@@ -234,7 +237,8 @@ function Overlay({
     });
   // Keep labels off the bus's resting spot (not its mid-glide spot), so they don't flicker.
   const busTarget = model.busPos != null ? busLabelAt(scene, scene.pointAt(model.busPos).world) : null;
-  const reserved = busTarget ? [{ x: busTarget.x, y: busTarget.y + 10, anchor: 'middle' as const }] : [];
+  const reserved: Box[] = [{ x: 12, y: 36, anchor: 'start', minor: true, text: 'Bus updated 120 min ago' }];
+  if (busTarget) reserved.push({ x: busTarget.x, y: busTarget.y + 10, anchor: 'middle' });
   const place = (p: { x: number; y: number }, text: string, strong = false, dy = 4, preferRight = true) => {
     const fitsRight = p.x < scene.width - 130;
     const fitsLeft = p.x > 130;
@@ -244,14 +248,31 @@ function Overlay({
       if (!clashes(at, [...labels, ...reserved])) return void labels.push(at);
     }
   };
-  if (scene.you) {
-    const { x, y } = scene.you.screen;
-    const you: Label = { x: clamp(x, 70, scene.width - 70), y: y + 22, text: model.walkMin != null ? `You · ${model.walkMin} min walk` : 'You', strong: true, anchor: 'middle', dark: true };
+  if (youPoint) {
+    const { x, y } = youPoint.screen;
+    const you: Label = { x: clamp(x, 32, scene.width - 32), y: y + 25, text: 'You', strong: true, anchor: 'middle', blue: true };
     if (clashes(you, reserved)) you.y = y - 18;
     labels.push(you);
   }
   // The stop's name goes on the far side from "You", so the walk leg stays readable.
-  if (user) place(user.screen, names[model.userIdx], true, 4, !scene.you || scene.you.screen.x < user.screen.x);
+  if (user) place(user.screen, names[model.userIdx], true, 4, !youPoint || youPoint.screen.x < user.screen.x);
+  if (youPoint && user && model.walkMin != null) {
+    const a = youPoint.screen;
+    const b = user.screen;
+    const length = Math.max(1, Math.hypot(b.x - a.x, b.y - a.y));
+    const nx = -(b.y - a.y) / length;
+    const ny = (b.x - a.x) / length;
+    const candidates: Label[] = [20, -20, 34, -34].map((offset) => ({
+      x: clamp((a.x + b.x) / 2 + nx * offset, 80, scene.width - 80),
+      y: clamp((a.y + b.y) / 2 + ny * offset, INSET_TOP + 22, scene.height - insetBottom - 20),
+      text: `${model.walkMin} min walk`, strong: true, anchor: 'middle', blue: true, walk: true,
+    }));
+    const clearsMarker = (l: Label) => {
+      const halfWidth = (l.text.length * 7.4 + 36) / 2;
+      return a.x + 12 < l.x - halfWidth || a.x - 12 > l.x + halfWidth || a.y + 12 < l.y - 15 || a.y - 12 > l.y + 8;
+    };
+    labels.push(candidates.find((l) => clearsMarker(l) && !clashes(l, [...labels, ...reserved])) ?? candidates.find(clearsMarker) ?? candidates[0]);
+  }
   const visible = (p: { x: number; y: number }) =>
     p.x > 24 && p.x < scene.width - 24 && p.y > INSET_TOP + 16 && p.y < scene.height - insetBottom - 16;
   if (end > 0 && end !== model.userIdx) {
@@ -332,17 +353,11 @@ function Overlay({
         />
       )}
 
-      {scene.you && user && (
-        <line
-          x1={scene.you.screen.x}
-          y1={scene.you.screen.y}
-          x2={user.screen.x}
-          y2={user.screen.y}
-          stroke="var(--ink)"
-          strokeWidth={2.5}
-          strokeDasharray="1 6"
-          strokeLinecap="round"
-        />
+      {youPoint && user && (
+        <g className="map-walking-connection">
+          <line x1={youPoint.screen.x} y1={youPoint.screen.y} x2={user.screen.x} y2={user.screen.y} stroke="#ffffff" strokeWidth={7} vectorEffect="non-scaling-stroke" />
+          <line x1={youPoint.screen.x} y1={youPoint.screen.y} x2={user.screen.x} y2={user.screen.y} stroke={GPS_BLUE} strokeWidth={3} strokeDasharray="0.1 7" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+        </g>
       )}
 
       {scene.stops.map((s, i) => {
@@ -361,15 +376,15 @@ function Overlay({
         );
       })}
 
-      {scene.you && (
-        <g>
-          <ellipse cx={scene.you.screen.x} cy={scene.you.screen.y + 2} rx={9} ry={4} fill="rgb(16 24 40 / 0.14)" />
-          <circle cx={scene.you.screen.x} cy={scene.you.screen.y - 4} r={8} fill="var(--ink)" stroke="#ffffff" strokeWidth={3} />
+      {youPoint && (
+        <g className="map-you-marker" transform={`translate(${youPoint.screen.x} ${youPoint.screen.y}) scale(${uiScale})`}>
+          <circle r={17} fill="rgb(26 115 232 / 0.15)" />
+          <circle className="map-you-dot" r={8} fill={GPS_BLUE} stroke="#ffffff" strokeWidth={3} />
         </g>
       )}
 
       {bus && faces && (
-        <g>
+        <g className="map-bus-layer">
           {pulse && <polygon points={pts(ring(scene, bus.world, 15))} fill="var(--map-route)" className="bus-pulse" />}
           <polygon points={pts(ring(scene, bus.world, 14))} fill="rgb(16 24 40 / 0.1)" />
           {faces.sides.map((s, i) => (
@@ -385,7 +400,7 @@ function Overlay({
       )}
 
       {labels.map((l) => {
-        const w = l.minor ? l.text.length * 6.2 + 14 : l.text.length * (l.strong ? 7.4 : 6.8) + 18;
+        const w = (l.minor ? l.text.length * 6.2 + 14 : l.text.length * (l.strong ? 7.4 : 6.8) + 18) + (l.walk ? 18 : 0);
         const h = l.minor ? 19 : 23;
         const x0 = l.anchor === 'start' ? l.x - 4 : l.anchor === 'end' ? l.x - w + 4 : l.x - w / 2;
         return (
@@ -393,15 +408,17 @@ function Overlay({
             key={l.text}
             className="map-pill"
             data-dark={l.dark ?? false}
+            data-walk={l.walk ?? false}
             transform={`translate(${l.x.toFixed(1)} ${l.y.toFixed(1)}) scale(${uiScale.toFixed(3)}) translate(${(-l.x).toFixed(1)} ${(-l.y).toFixed(1)})`}
           >
-            <rect x={x0} y={l.y - (l.minor ? 13 : 15)} width={w} height={h} rx={h / 2} />
+            <rect x={x0} y={l.y - (l.minor ? 13 : 15)} width={w} height={h} rx={h / 2} stroke={l.blue ? '#bfdbfe' : undefined} />
+            {l.walk && <Footprints x={x0 + 7} y={l.y - 11} width={14} height={14} color={GPS_BLUE} />}
             <text
-              x={x0 + w / 2}
+              x={x0 + w / 2 + (l.walk ? 8 : 0)}
               y={l.y + (l.minor ? 0 : 0.5)}
               textAnchor="middle"
               className={`map-label ${l.strong ? 'map-label--strong' : ''}`}
-              style={l.minor ? { fontSize: 11 } : undefined}
+              style={{ ...(l.minor ? { fontSize: 11 } : {}), ...(l.blue ? { fill: GPS_BLUE } : {}) }}
             >
               {l.text}
             </text>
@@ -552,7 +569,7 @@ function useMapViewBox(ref: RefObject<HTMLElement | null>, baseW: number, baseH:
     };
   }, [ref, baseW, baseH]);
 
-  const zoom = baseW > 0 ? baseW / view.w : 1;
+  const zoom = baseW > 0 && view.w > 0 ? baseW / view.w : 1;
 
   const zoomBy = useCallback(
     (factor: number, clientX?: number, clientY?: number) => {
@@ -583,6 +600,9 @@ function useMapViewBox(ref: RefObject<HTMLElement | null>, baseW: number, baseH:
     (p: { x: number; y: number }) => {
       if (baseW <= 0 || baseH <= 0) return;
       const v = viewRef.current;
+      // The first render has a zero-size view. Let the resize effect initialize
+      // it before follow mode can replace that update with an empty viewport.
+      if (v.w <= 0 || v.h <= 0) return;
       if (v.w >= baseW - 2) return;
       // Sit the bus a little above centre, clear of the bottom sheet.
       const next = clampView({ ...v, x: p.x - v.w / 2, y: p.y - v.h * 0.42 }, baseW, baseH);
@@ -595,7 +615,7 @@ function useMapViewBox(ref: RefObject<HTMLElement | null>, baseW: number, baseH:
   return { view, zoom, zoomBy, resetView, follow, setFollow, centerOn };
 }
 
-export function RouteMap3D({ stops, model, pulse, insetBottom }: RouteMap3DProps) {
+export function RouteMap3D({ stops, model, pulse, fresh, insetBottom }: RouteMap3DProps) {
   const [ref, size] = useSize<HTMLDivElement>();
   const baseW = size?.width ?? 0;
   const baseH = size?.height ?? 0;
@@ -614,6 +634,11 @@ export function RouteMap3D({ stops, model, pulse, insetBottom }: RouteMap3DProps
         : null,
     [ordered, size, insetBottom, model.userIdx],
   );
+  const freshness = fresh?.label.startsWith('Live · ')
+    ? `Bus updated ${fresh.label.slice('Live · '.length)}`
+    : fresh?.label.startsWith('Updated ')
+      ? `Bus updated ${fresh.label.slice('Updated '.length)}`
+      : fresh?.label;
 
   // Pan with the bus: glide the view the same way the bus icon glides, so they move together.
   const glidePos = useGlide(model.busPos);
@@ -629,7 +654,7 @@ export function RouteMap3D({ stops, model, pulse, insetBottom }: RouteMap3DProps
   return (
     <figure
       role="img"
-      aria-label={`${model.label} Pinch or scroll to zoom the map. Double-tap to reset.`}
+      aria-label={`${model.label}${freshness ? ` ${freshness}.` : ''} Pinch or scroll to zoom the map. Double-tap to reset.`}
       className="route-map absolute inset-0 m-0 overflow-hidden [touch-action:none]"
       data-stale={model.stale}
       data-zoom={zoom >= 1.2 ? 'in' : 'out'}
@@ -644,11 +669,12 @@ export function RouteMap3D({ stops, model, pulse, insetBottom }: RouteMap3DProps
             aria-hidden
             className="block h-full w-full"
           >
-            <City scene={scene} view={view} zoom={zoom} />
+            <g className="map-city-layer"><City scene={scene} view={view} zoom={zoom} /></g>
             <Overlay scene={scene} names={names} model={model} pulse={pulse} insetBottom={insetBottom} zoom={zoom} />
           </svg>
         )}
       </div>
+      {freshness && <p className="map-freshness"><span className={fresh?.live ? 'live-dot' : ''} aria-hidden />{freshness}</p>}
       <div className="pointer-events-auto absolute right-3 z-10 flex flex-col gap-2" style={{ bottom: insetBottom + 12 }}>
         <button
           type="button"

@@ -15,6 +15,10 @@ type Artwork = { src: string; x: number; width: number; clip?: string; head?: He
 /** Each supplied drawing is a key pose, not an in-between animation frame.
  * Keep one expression per status and animate its layers continuously instead. */
 const ARTWORK: Record<string, Artwork> = {
+  relax: {
+    src: offline, x: 742, width: 216,
+    head: { x: 826, y: 122, width: 110, height: 144, pivotX: 874, pivotY: 252 },
+  },
   calm: {
     src: offline, x: 24, width: 250, blink: true,
     head: { x: 178, y: 120, width: 100, height: 140, pivotX: 222, pivotY: 250 },
@@ -39,6 +43,7 @@ const ARTWORK: Record<string, Artwork> = {
 
 function pigeonState(state: ViewState, staleData: boolean): string {
   switch (state) {
+    case 'relax': return 'relax';
     case 'delayed':
     case 'standby': return 'delay';
     case 'missed': return 'missed';

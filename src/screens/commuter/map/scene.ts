@@ -79,7 +79,7 @@ const PITCH = (52 * Math.PI) / 180;
 const GRID_LEAN = (62 * Math.PI) / 180; // street grid runs away from the viewer, leaning right
 const FOCUS_M = 1200; // stops further than this from the cluster may leave the frame (the 2 km EDSA leg)
 const PAD_X = 36;
-const YOU_OFFSET_PX = 34;
+const YOU_OFFSET_PX = 96; // leave room for the dotted walking leg and its time label
 const HEIGHT_K = 0.42; // real towers would hide the route; heights are squashed
 const STREET_M = { major: 20, minor: 11, walk: 5 };
 

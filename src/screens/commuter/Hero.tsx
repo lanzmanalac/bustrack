@@ -1,20 +1,13 @@
-import { BusFront, CalendarClock, Footprints, Info, Radio } from 'lucide-react';
 import { RollingNumber } from '../../ui/RollingNumber';
 import { PigeonMascot } from './mascot/PigeonMascot';
-import type { HeroDetail } from './heroDetails';
 import type { ChipModel, HeroModel } from './view';
 import './hero.css';
 
 const sentence = (s: string) => (/[.!?]$/.test(s) ? s : `${s}.`);
 
-export function Hero({ model, details, fresh, onExplain }: { model: HeroModel; details: HeroDetail[]; fresh: ChipModel | null; onExplain: () => void }) {
+export function Hero({ model, fresh, onExplain }: { model: HeroModel; fresh: ChipModel | null; onExplain: () => void }) {
   const isNumber = model.minutes != null;
   const isTakeover = model.state === 'leave_now';
-  const freshness = fresh?.label.startsWith('Live · ')
-    ? `Bus location updated ${fresh.label.slice('Live · '.length)}`
-    : fresh?.label.startsWith('Updated ')
-      ? `Bus location updated ${fresh.label.slice('Updated '.length)}`
-      : fresh?.label;
 
   return (
     <>
@@ -46,27 +39,6 @@ export function Hero({ model, details, fresh, onExplain }: { model: HeroModel; d
         </div>
         <PigeonMascot state={model.state} staleData={model.lowConfidence || fresh?.tone === 'muted'} />
       </button>
-
-      <div className="hero-context">
-        <ul className="hero-details">
-          {details.map((detail) => {
-            const Icon = detail.kind === 'bus' ? BusFront : detail.kind === 'walk' ? Footprints : Info;
-            return <li key={detail.kind + detail.text}><Icon size={17} aria-hidden /><span>{detail.text}</span></li>;
-          })}
-        </ul>
-        {fresh && (
-          <p className="hero-freshness">
-            {fresh.live ? (
-              <span className="live-dot size-2 rounded-full bg-current" aria-hidden />
-            ) : fresh.tone === 'muted' ? (
-              <CalendarClock size={14} aria-hidden />
-            ) : (
-              <Radio size={14} aria-hidden />
-            )}
-            {freshness}
-          </p>
-        )}
-      </div>
 
       <p aria-live="polite" className="sr-only">
         {model.announce}

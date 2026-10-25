@@ -4,6 +4,7 @@
   align-items: center;
   gap: 8px;
   min-height: 152px;
+  margin-bottom: 16px;
 }
 
 .hero-heading-copy {
@@ -61,39 +62,4 @@
 .hero-count-suffix {
   font-size: 0.875rem;
   color: var(--tone-muted);
-}
-
-.hero-context {
-  padding: 4px 20px 32px;
-}
-
-.hero-details {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  line-height: 1.45;
-}
-
-.hero-details li {
-  display: grid;
-  grid-template-columns: 17px minmax(0, 1fr);
-  align-items: start;
-  gap: 8px;
-}
-
-.hero-details svg {
-  margin-top: 2px;
-  opacity: 0.8;
-}
-
-.hero-freshness {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin-top: 12px;
-  color: var(--tone-muted);
-  font-size: 0.75rem;
-  line-height: 1.4;
 }
