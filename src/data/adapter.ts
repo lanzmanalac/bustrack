@@ -1,4 +1,6 @@
 import type { BusStatus, RiderReport } from '../contracts/types';
+import { CONFIG } from '../contracts/config';
+import { createLiveAdapter, createLiveClient } from './live';
 import { createMockAdapter } from './mock';
 
 // Frozen contract (BUILD_PLAN 4.6). subscribe* also emits the current list once right after subscribing.
@@ -12,4 +14,12 @@ export interface DataAdapter {
   resetDemo(): Promise<void>;
 }
 
-export const data: DataAdapter = createMockAdapter();
+function chooseAdapter(): DataAdapter {
+  if (CONFIG.DATA_MODE !== 'live') return createMockAdapter();
+  const client = createLiveClient();
+  if (client) return createLiveAdapter(client);
+  console.error('[data] live mode but Supabase env missing, using mock');
+  return createMockAdapter();
+}
+
+export const data: DataAdapter = chooseAdapter();
