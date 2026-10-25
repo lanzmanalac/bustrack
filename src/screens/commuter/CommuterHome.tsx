@@ -21,7 +21,8 @@ import { StateSwitcher } from './StateSwitcher';
 import { StopPicker } from './StopPicker';
 import { type TripBarProps } from './TripBar';
 import { TripCard } from './TripCard';
-import { resolveTripAi } from './tripAi';
+import { resolveTrip } from './tripIntent';
+import { tripVerdictFor } from './tripVerdict';
 import { explainFor, heroFor, mapFor, metaFor, planBFor, tripFor, type ViewContext } from './view';
 
 const ROUTE = route as Route;
@@ -66,7 +67,7 @@ interface CommuterScreenProps {
   buses?: BusStatus[];
   forceOffline: boolean;
   onPickStop: (stop: Stop) => void;
-  trip: Omit<TripBarProps, 'stops'>;
+  trip: Trip;
   top?: ReactNode;
 }
 
@@ -79,6 +80,8 @@ export function CommuterScreen({ plan, buses, forceOffline, onPickStop, trip, to
 
   // Mock mode syncs tabs with no network, so being offline only matters for live data.
   const offline = forceOffline || (!online && CONFIG.DATA_MODE === 'live');
+  const calculatedVerdict = tripVerdictFor(plan, trip.intent, ROUTE.stops, realNowMs());
+  const verdict = offline && calculatedVerdict ? { kind: 'unknown' as const } : calculatedVerdict;
   const ctx: ViewContext = {
     worldElapsedSec: worldElapsedSec(plan.computed_at_real_ms),
     realElapsedSec: Math.max(0, (realNowMs() - plan.computed_at_real_ms) / 1000),
@@ -114,7 +117,7 @@ export function CommuterScreen({ plan, buses, forceOffline, onPickStop, trip, to
               routes={ROUTES}
               routeId={routeId}
               onPickRoute={setRouteId}
-              trip={trip}
+              trip={{ ...trip, verdict }}
             />
             <Hero model={hero} details={heroDetailsFor(plan, ctx, hero.state)} fresh={meta?.fresh ?? null} onExplain={() => setExplainOpen(true)} />
           </section>
@@ -153,7 +156,7 @@ export function CommuterScreen({ plan, buses, forceOffline, onPickStop, trip, to
   );
 }
 
-type Trip = Omit<TripBarProps, 'stops'>;
+type Trip = Omit<TripBarProps, 'stops' | 'verdict'>;
 
 function FixtureCommuter({ trip }: { trip: Trip }) {
   const fixture = useFixturePlan();
@@ -194,31 +197,46 @@ export function CommuterHome() {
   const [fixtureMode] = useState(() => new URLSearchParams(window.location.search).has('state'));
   const [intent, setIntent] = useState<TripIntent | null>(null);
   const [pending, setPending] = useState(false);
+  const requestId = useRef(0);
 
   const submit = async (text: string) => {
+    const current = ++requestId.current;
     setPending(true);
     try {
-      setIntent(await resolveTripAi(text, ROUTE.stops));
+      const next = await resolveTrip(text, ROUTE.stops);
+      if (current === requestId.current) setIntent(next);
     } finally {
-      setPending(false);
+      if (current === requestId.current) setPending(false);
     }
+  };
+
+  const cancelPending = () => {
+    requestId.current += 1;
+    setPending(false);
   };
 
   const trip: Trip = {
     intent,
-    verdict: null,
     pending,
     onSubmit: submit,
-    onPickStop: (stop) =>
+    onPickStop: (stop) => {
+      cancelPending();
       setIntent((prev) => ({
         destination_stop_id: stop.stop_id,
         destination_confidence: null,
         arrive_by: prev?.arrive_by ?? null,
         clarify: null,
         decided_by: 'rules',
-      })),
-    onSetArriveBy: (arrive_by) => setIntent((prev) => (prev ? { ...prev, arrive_by } : prev)),
-    onClear: () => setIntent(null),
+      }));
+    },
+    onSetArriveBy: (arrive_by) => {
+      cancelPending();
+      setIntent((prev) => (prev ? { ...prev, arrive_by } : prev));
+    },
+    onClear: () => {
+      cancelPending();
+      setIntent(null);
+    },
   };
 
   return fixtureMode ? <FixtureCommuter trip={trip} /> : <LiveCommuter trip={trip} />;

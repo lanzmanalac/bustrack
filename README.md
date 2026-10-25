@@ -226,7 +226,7 @@ We use AI for the two things simple rules do badly: understanding how people act
 
 ### Job 1: Where are you going?
 
-Type it the way you'd text a friend: *"kailangan nasa High Street ako by 9"* (I need to be at High Street by 9).
+For the demo, start at **HSBC** and type it the way you'd text a friend: *"kailangan nasa EDSA Ayala ako by 7pm"* (I need to be at EDSA Ayala by 7 PM).
 
 ```mermaid
 ---
@@ -235,15 +235,15 @@ config:
     wrappingWidth: 400
 ---
 flowchart TD
-    T["You type:<br/>kailangan nasa<br/>High Street ako by 9"]
-    T --> P["On your phone:<br/>'by 9' becomes 9:00"]
+    T["At HSBC, you type:<br/>kailangan nasa<br/>EDSA Ayala ako by 7pm"]
+    T --> P["On your phone:<br/>'by 7pm' becomes 19:00"]
     T --> API["/api/decide<br/>gets the text only,<br/>never coordinates"]
     API --> D["The Decisions API<br/>picks one stop from<br/>our list, and says<br/>how sure it is"]
     D --> S{"Sure<br/>enough?"}
-    S -- "60% or more" --> C["Chips you can fix:<br/>To: High Street<br/>Arrive by 9:00"]
+    S -- "60% or more" --> C["Chips you can fix:<br/>To: EDSA Ayala<br/>Arrive by 7:00 PM"]
     S -- "Less, or 'Unclear'" --> Q["It asks:<br/>Did you mean<br/>A or B?"]
     P --> C
-    C --> V["Verdict from the math:<br/>This bus gets you<br/>there by 8:52"]
+    C --> V["Verdict from the math:<br/>on time, tight, or late<br/>from the live bus ETA"]
 
     classDef good fill:#d9f2ec,stroke:#1f9e89,color:#0b3d35
     classDef ask fill:#fff3d6,stroke:#d39e00,color:#4d3800
@@ -290,7 +290,7 @@ flowchart LR
 
     subgraph LEAVES["Leaves it, never with coordinates"]
         direction TB
-        S1["What you type,<br/>like 'High Street by 9'"]
+        S1["What you type,<br/>like 'EDSA Ayala by 7pm'"]
         S2["Facts for a Plan B,<br/>like 'bus stuck for 4 min'"]
         S3["Opt-in only:<br/>'+1 on this bus',<br/>with a random ID<br/>that resets daily"]
     end
@@ -353,7 +353,7 @@ flowchart LR
 
 ## How we built it
 
-Five of us built this in parallel in one afternoon, each working with Codex from the same plan.
+Five of us built this in parallel in one afternoon from the same plan. Codex supported the commuter, data, logic, and route/deployment work; the Driver/Company teammate used Claude for the driver app and simulator.
 
 ```mermaid
 ---
@@ -362,11 +362,11 @@ config:
     wrappingWidth: 400
 ---
 flowchart TD
-    PLAN["AGENTS.md<br/>one plan for the team<br/>and for Codex"] --> CON["Shared contracts:<br/>types, settings,<br/>sample data"]
+    PLAN["AGENTS.md<br/>one plan for the team<br/>and AI tools"] --> CON["Shared contracts:<br/>types, settings,<br/>sample data"]
     CON --> R1["PM + UI/UX<br/>commuter screens"]
     CON --> R2["Data and sync<br/>Supabase,<br/>mock mode"]
     CON --> R3["Logic and AI<br/>leave-time math,<br/>/api/decide"]
-    CON --> R4["Driver and operator<br/>driver app,<br/>bus simulator"]
+    CON --> R4["Driver and operator<br/>driver app, simulator<br/>built with Claude"]
     CON --> R5["All-arounder<br/>route line,<br/>deploy, QA"]
     R1 & R2 & R3 & R4 & R5 --> APP["SakayKita"]
 
@@ -374,12 +374,12 @@ flowchart TD
     class APP good
 ```
 
-- **One plan for people and AI.** [AGENTS.md](AGENTS.md) is the single source of truth. Every Codex session starts by reading it, so each one knows its role, its folders, and what not to touch.
+- **One plan for people and AI.** [AGENTS.md](AGENTS.md) is the shared source of truth. Each teammate and their coding assistant could use it to understand the role, file ownership, and contracts.
 - **Contracts first.** Shared types, settings, and sample data were locked in at the start. After that, nobody had to wait on anybody.
 - **Sample data for every screen.** Each screen state has its own sample data, so the commuter screens could be built before the backend existed.
 - **A mock mode that needs no internet.** Two browser tabs can play driver and commuter on one laptop, in case the venue Wi-Fi gives up.
 
-**Codex highlights:** [add 2–3 moments from the Codex log, with screenshots]
+**Build highlights:** [add 2–3 verified moments from the team's AI build logs, with screenshots]
 
 ---
 
@@ -396,6 +396,8 @@ Then open two tabs:
 - `http://localhost:5173/?demo=1` is the commuter app, using a demo location instead of your GPS.
 
 By default the app runs in **mock mode**. The two tabs talk to each other inside the browser, with no internet and no accounts needed.
+
+For a phone demo, keep **only one driver page running** and keep that phone's screen awake while it sends bus updates. Set the commuter's boarding stop to **HSBC** and its destination to **EDSA Ayala**.
 
 **Live mode** (real phones, real sync) needs a Supabase project. Run the SQL from [AGENTS.md, section 7](AGENTS.md#7-role-backend-1-data-and-sync) once, then create a `.env.local` file:
 
@@ -423,7 +425,7 @@ src/components/RouteLine/  the animated route line
 
 ### Built with
 
-React, Vite, TypeScript, Tailwind CSS, motion, and lucide-react on the front end. Supabase (Postgres and Realtime) for live data, with polling as a backup. OpenAI's Decisions API for the AI inside the app. Vercel for hosting. Vitest for tests. Codex for building all of it.
+React, Vite, TypeScript, Tailwind CSS, motion, and lucide-react on the front end. Supabase (Postgres and Realtime) for live data, with polling as a backup. OpenAI's Decisions API for the AI inside the app. Vercel for hosting. Vitest for tests. Codex supported most of the build, and Claude supported the Driver/Company work.
 
 ---
 

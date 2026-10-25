@@ -4,7 +4,7 @@ import { CONFIG } from '../../contracts/config';
 import type { Stop, TripIntent } from '../../contracts/types';
 import { StopPicker } from './StopPicker';
 
-export type TripVerdict = { kind: 'on_time' | 'tight' | 'late'; arriveAt?: string };
+export type TripVerdict = { kind: 'on_time' | 'tight' | 'late' | 'unknown'; arriveAt?: string };
 
 export interface TripBarProps {
   stops: Stop[];
@@ -29,6 +29,7 @@ const VERDICT_COPY: Record<TripVerdict['kind'], string> = {
   on_time: 'This bus gets you there on time',
   tight: 'Tight: this bus gets you there just in time',
   late: 'This bus gets you there late',
+  unknown: 'Arrival time unavailable right now',
 };
 
 function EditChip({ icon, children, onClick, label }: { icon: ReactNode; children: ReactNode; onClick: () => void; label: string }) {
@@ -109,7 +110,7 @@ export function TripBar({ stops, intent, verdict, pending, onSubmit, onPickStop,
               {verdict && (
                 <p
                   className={`mt-2 flex items-center gap-1.5 px-1 text-[0.9375rem] font-bold ${
-                    verdict.kind === 'on_time' ? 'text-[var(--chip-good-fg)]' : verdict.kind === 'tight' ? 'text-[var(--chip-warn-fg)]' : 'text-[var(--chip-bad-fg)]'
+                    verdict.kind === 'on_time' ? 'text-[var(--chip-good-fg)]' : verdict.kind === 'tight' || verdict.kind === 'unknown' ? 'text-[var(--chip-warn-fg)]' : 'text-[var(--chip-bad-fg)]'
                   }`}
                 >
                   {verdict.kind === 'on_time' ? <CircleCheck size={18} aria-hidden /> : <CircleAlert size={18} aria-hidden />}

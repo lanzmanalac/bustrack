@@ -5,6 +5,13 @@ import type { Stop, TripIntent } from '../../contracts/types';
 import { formatClock, TripBar, type TripBarProps } from './TripBar';
 import './trip-dropdown.css';
 
+const VERDICT_LABEL = {
+  on_time: 'On time',
+  tight: 'Tight arrival',
+  late: 'Arrives late',
+  unknown: 'Arrival unavailable',
+} as const;
+
 export interface RouteOption {
   route_id: string;
   name: string;
@@ -96,6 +103,16 @@ export function TripDropdown({
         </span>
         <ChevronDown size={18} aria-hidden className={`shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
+
+      {settled && trip.verdict && (
+        <p aria-live="polite" className={`mt-1 pr-3 text-right text-xs font-bold ${
+          trip.verdict.kind === 'on_time' ? 'text-[var(--chip-good-fg)]'
+            : trip.verdict.kind === 'late' ? 'text-[var(--chip-bad-fg)]'
+              : 'text-[var(--chip-warn-fg)]'
+        }`}>
+          {VERDICT_LABEL[trip.verdict.kind]}
+        </p>
+      )}
 
       <AnimatePresence initial={false}>
         {open && (
