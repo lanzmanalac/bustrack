@@ -4,6 +4,7 @@ import route from '../../data/route.json';
 import { CONFIG } from '../../contracts/config';
 import '../../ui/tokens.css'; // loads Barlow Condensed + Public Sans (read-only use of PM's tokens)
 import DemoDrawer from './DemoDrawer';
+import { HOLD_MS, NO_TAPS, registerTap, type TapState } from './secretGesture';
 import { isLastStop, metersToNextStop } from './sim';
 import { useDriver } from './useDriver';
 
@@ -26,17 +27,28 @@ function formatMeters(m: number) {
 export default function DriverHome() {
   const { state, stops, simulate, autoDepart, locked, sent, undo, gpsError, actions } = useDriver();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const taps = useRef<number[]>([]);
+  const taps = useRef<TapState>(NO_TAPS);
+  const holdTimer = useRef<number | null>(null);
   const now = useNow(1000);
 
-  // Hidden demo drawer: triple-tap the route name.
+  // Hidden demo drawer: triple-tap the route name (each tap within 0.6 s of the last),
+  // or press and hold it for 1 s.
   const onTitleTap = () => {
-    const t = Date.now();
-    taps.current = [...taps.current.filter((x) => t - x < 700), t];
-    if (taps.current.length >= 3) {
-      taps.current = [];
+    const { state: next, open } = registerTap(taps.current, Date.now());
+    taps.current = next;
+    if (open) setDrawerOpen(true);
+  };
+  const cancelHold = () => {
+    if (holdTimer.current != null) window.clearTimeout(holdTimer.current);
+    holdTimer.current = null;
+  };
+  const startHold = () => {
+    cancelHold();
+    holdTimer.current = window.setTimeout(() => {
+      holdTimer.current = null;
+      taps.current = NO_TAPS;
       setDrawerOpen(true);
-    }
+    }, HOLD_MS);
   };
 
   const here = stops[state.stopIndex];
@@ -56,11 +68,23 @@ export default function DriverHome() {
   return (
     <main
       className="flex min-h-dvh flex-col gap-3 bg-slate-950 p-4 text-white select-none"
-      style={{ fontFamily: UI }}
+      // touch-action: manipulation turns off double-tap-to-zoom, which otherwise eats the 2nd tap on phones
+      style={{ fontFamily: UI, touchAction: 'manipulation' }}
     >
-      {/* Header: route name (triple-tap = demo controls) + mode */}
+      {/* Header: route name (triple-tap or hold 1 s = demo controls) + mode */}
       <header className="flex items-start justify-between gap-3">
-        <button type="button" onClick={onTitleTap} className="text-left" aria-label={`${route.name}, ${route.direction}`}>
+        <button
+          type="button"
+          onClick={onTitleTap}
+          onPointerDown={startHold}
+          onPointerUp={cancelHold}
+          onPointerLeave={cancelHold}
+          onPointerCancel={cancelHold}
+          onContextMenu={(e) => e.preventDefault()}
+          className="-m-2 min-h-12 p-2 text-left"
+          style={{ touchAction: 'manipulation', WebkitTouchCallout: 'none' }}
+          aria-label={`${route.name}, ${route.direction}`}
+        >
           <div className="text-lg leading-tight font-bold">{route.name}</div>
           <div className="text-sm text-slate-300">{route.direction}</div>
         </button>

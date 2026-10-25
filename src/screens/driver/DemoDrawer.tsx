@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 import type { Stop } from '../../contracts/types';
 import type { DriverState } from './sim';
@@ -52,6 +52,17 @@ function Action({ children, onClick, disabled }: { children: ReactNode; onClick:
 
 export default function DemoDrawer({ open, onClose, stops, state, simulate, autoDepart, actions }: Props) {
   const [note, setNote] = useState<string | null>(null);
+
+  // Escape closes the drawer (keyboard / laptop backup during the demo).
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   const done = (msg: string) => {
