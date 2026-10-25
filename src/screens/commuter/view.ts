@@ -111,7 +111,8 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
 /** Floor, so we never promise more time than there is. */
 const leaveMinutes = (sec: number) => Math.max(0, Math.floor(sec / 60));
-const walkMinutes = (sec: number) => Math.max(1, Math.round(sec / 60));
+/** 0 means unknown: a hand-picked stop with no GPS fix. */
+const walkMinutes = (sec: number) => (sec > 0 ? Math.max(1, Math.round(sec / 60)) : 0);
 const bufferMinutes = (sec: number) => Math.max(0, Math.round(sec / 60));
 
 export function ago(sec: number): string {
@@ -215,8 +216,8 @@ export function heroFor(plan: LeavePlan, ctx: ViewContext): HeroModel {
       const m = leaveMinutes(leaveIn ?? 0);
       const sub =
         state === 'relax'
-          ? `${stopsAwaySentence(plan.stops_away)} · ${walk} min walk to ${stop}`
-          : `Start packing up · ${walk} min walk`;
+          ? `${stopsAwaySentence(plan.stops_away)} · ${walk ? `${walk} min walk to` : 'catch it at'} ${stop}`
+          : `Start packing up${walk ? ` · ${walk} min walk` : ''}`;
       return { ...base, minutes: m, sub, announce: `Leave in ${plural(m, 'minute')}` };
     }
     case 'leave_now': {
@@ -232,7 +233,7 @@ export function heroFor(plan: LeavePlan, ctx: ViewContext): HeroModel {
     }
     case 'standby': {
       if (leaveIn == null) {
-        return { ...base, headline: `Bus is waiting at ${busStop}`, sub: `${walk} min walk to ${stop}`, announce: `Bus is waiting at ${busStop}` };
+        return { ...base, headline: `Bus is waiting at ${busStop}`, sub: walk ? `${walk} min walk to ${stop}` : `Your stop: ${stop}`, announce: `Bus is waiting at ${busStop}` };
       }
       if (leaveIn < 60) {
         return {
@@ -347,7 +348,7 @@ export function explainFor(plan: LeavePlan, ctx: ViewContext): ExplainModel {
   const rows = (busLabel: string): ExplainRow[] | null =>
     b && [
       { op: '', label: busLabel, value: `~${b.busMin} min` },
-      { op: '−', label: `Your walk to ${stop}`, value: `${b.walkMin} min` },
+      { op: '−', label: `Your walk to ${stop}${b.walkMin ? '' : ' (location off, not counted)'}`, value: `${b.walkMin} min` },
       { op: '−', label: 'Safety buffer', value: `${b.bufferMin} min` },
     ];
 

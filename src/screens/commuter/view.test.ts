@@ -74,6 +74,14 @@ describe('heroFor copy', () => {
     expect(noSignal.lowConfidence).toBe(true);
   });
 
+  it('a picked stop with no GPS has no walk time, so the copy does not invent one', () => {
+    const plan: LeavePlan = { ...FIXTURES.relax, walk_sec: 0 };
+    expect(heroFor(plan, ctx()).sub).toBe(`Bus is 2 stops away · catch it at ${stopName(4)}`);
+    expect(heroFor({ ...FIXTURES.get_ready, walk_sec: 0 }, ctx()).sub).toBe('Start packing up');
+    const rows = explainFor(plan, ctx()).rows ?? [];
+    expect(rows[1]).toEqual({ op: '−', label: `Your walk to ${stopName(4)} (location off, not counted)`, value: '0 min' });
+  });
+
   it('offline shows the last known value without ticking it', () => {
     const plan: LeavePlan = { ...FIXTURES.relax, leave_in_sec: 300, data_age_sec: 120 };
     const h = heroFor(plan, ctx({ offline: true, worldElapsedSec: 200 }));

@@ -1,10 +1,13 @@
 import { AnimatePresence, MotionConfig } from 'motion/react';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import '../../ui/tokens.css';
 import { realNowMs, worldElapsedSec } from '../../contracts/clock';
 import { CONFIG } from '../../contracts/config';
 import type { BusPhase, BusStatus, LeavePlan, Route, Stop, TripIntent } from '../../contracts/types';
+import { data } from '../../data/adapter';
 import route from '../../data/route.json';
+import { loadLastPlan, saveLastPlan } from '../../lib/lastPlan';
+import { useLeavePlan } from '../../logic/useLeavePlan';
 import { Toast } from '../../ui/Toast';
 import { ExplainSheet } from './ExplainSheet';
 import { useFixturePlan } from './fixturePlan';
@@ -121,8 +124,45 @@ export function CommuterScreen({ plan, buses, forceOffline, onPickStop, trip, to
   );
 }
 
-export function CommuterHome() {
+type Trip = Omit<TripBarProps, 'stops'>;
+
+function FixtureCommuter({ trip }: { trip: Trip }) {
   const fixture = useFixturePlan();
+  return (
+    <CommuterScreen
+      plan={fixture.plan}
+      forceOffline={fixture.offline}
+      onPickStop={fixture.pickStop}
+      top={fixture.showSwitcher ? <StateSwitcher current={fixture.name} onSelect={fixture.select} /> : null}
+      trip={trip}
+    />
+  );
+}
+
+function LiveCommuter({ trip }: { trip: Trip }) {
+  const [pickedStop, setPickedStop] = useState<Stop | null>(null);
+  const { plan, buses } = useLeavePlan({ adapter: data, userStop: pickedStop });
+  const offline = !useOnline() && CONFIG.DATA_MODE === 'live';
+  const saved = useMemo(() => (offline ? loadLastPlan() : null), [offline]);
+
+  useEffect(() => {
+    if (!offline) saveLastPlan(plan);
+  }, [plan, offline]);
+
+  return (
+    <CommuterScreen
+      plan={saved?.plan ?? plan}
+      buses={offline ? undefined : buses}
+      forceOffline={offline}
+      onPickStop={setPickedStop}
+      trip={trip}
+    />
+  );
+}
+
+/** `/?state=leave_now` shows a design fixture; otherwise the screen runs on live bus data. */
+export function CommuterHome() {
+  const [fixtureMode] = useState(() => new URLSearchParams(window.location.search).has('state'));
   const [intent, setIntent] = useState<TripIntent | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -135,30 +175,24 @@ export function CommuterHome() {
     }
   };
 
-  return (
-    <CommuterScreen
-      plan={fixture.plan}
-      forceOffline={fixture.offline}
-      onPickStop={fixture.pickStop}
-      top={fixture.showSwitcher ? <StateSwitcher current={fixture.name} onSelect={fixture.select} /> : null}
-      trip={{
-        intent,
-        verdict: null,
-        pending,
-        onSubmit: submit,
-        onPickStop: (stop) =>
-          setIntent((prev) => ({
-            destination_stop_id: stop.stop_id,
-            destination_confidence: null,
-            arrive_by: prev?.arrive_by ?? null,
-            clarify: null,
-            decided_by: 'rules',
-          })),
-        onSetArriveBy: (arrive_by) => setIntent((prev) => (prev ? { ...prev, arrive_by } : prev)),
-        onClear: () => setIntent(null),
-      }}
-    />
-  );
+  const trip: Trip = {
+    intent,
+    verdict: null,
+    pending,
+    onSubmit: submit,
+    onPickStop: (stop) =>
+      setIntent((prev) => ({
+        destination_stop_id: stop.stop_id,
+        destination_confidence: null,
+        arrive_by: prev?.arrive_by ?? null,
+        clarify: null,
+        decided_by: 'rules',
+      })),
+    onSetArriveBy: (arrive_by) => setIntent((prev) => (prev ? { ...prev, arrive_by } : prev)),
+    onClear: () => setIntent(null),
+  };
+
+  return fixtureMode ? <FixtureCommuter trip={trip} /> : <LiveCommuter trip={trip} />;
 }
 
 export default CommuterHome;

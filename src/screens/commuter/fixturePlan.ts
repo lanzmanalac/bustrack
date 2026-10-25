@@ -25,7 +25,7 @@ function fixtureFor(name: string): FixturePlan {
 
 const readStateParam = () => new URLSearchParams(window.location.search).get('state');
 
-/** Hidden design switcher: `/?state=leave_now`. Replaced by useLeavePlan() once Backend 2 ships it. */
+/** Hidden design switcher: `/?state=leave_now`. Without `?state=` the commuter screen runs on useLeavePlan(). */
 export function useFixturePlan() {
   const [name, setName] = useState(() => readStateParam() ?? 'relax');
   const [fixture, setFixture] = useState(() => fixtureFor(name));
