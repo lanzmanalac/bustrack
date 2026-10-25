@@ -14,5 +14,5 @@ export const CONFIG = {
   AI_CONFIDENCE_MIN: 0.6,      // below this, ask the user instead of guessing
   TIME_SCALE: Number(import.meta.env.VITE_TIME_SCALE ?? 1),   // demo speed-up, e.g. 8
   DATA_MODE: (import.meta.env.VITE_DATA_MODE ?? 'mock') as 'mock' | 'live',
-  DEMO_USER_LOCATION: { lat: 14.5480, lng: 121.0560 },        // PLACEHOLDER
+  DEMO_USER_LOCATION: { lat: 14.5528, lng: 121.0552 },        // ~4 min walk to Avida 34th (BGC Bus North)
 } as const;
