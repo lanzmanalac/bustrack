@@ -1,15 +1,17 @@
 {
   "route_id": "demo-route",
-  "name": "[BGC Bus route name]",
-  "direction": "[toward ...]",
+  "name": "BGC Bus North Route",
+  "direction": "toward EDSA Ayala",
   "headway_min": 10,
-  "service_hours": "[06:00-22:00]",
+  "service_hours": "06:00-21:00",
+  "_notes": "Stops: Wikipedia/Sakay/Taguigeno (Jan 2025 list), reversed for the EDSA Ayala direction. Coordinates: Google Maps place pins (building, not curb), EDSA Ayala from Sakay. headway_min is APPROXIMATE: BGC Bus publishes no frequency.",
   "stops": [
-    { "stop_id": "s1", "route_id": "demo-route", "name": "[Stop 1]", "lat": 14.5600, "lng": 121.0480, "seq": 1 },
-    { "stop_id": "s2", "route_id": "demo-route", "name": "[Stop 2]", "lat": 14.5555, "lng": 121.0490, "seq": 2 },
-    { "stop_id": "s3", "route_id": "demo-route", "name": "[Stop 3]", "lat": 14.5510, "lng": 121.0500, "seq": 3 },
-    { "stop_id": "s4", "route_id": "demo-route", "name": "[Stop 4]", "lat": 14.5465, "lng": 121.0510, "seq": 4 },
-    { "stop_id": "s5", "route_id": "demo-route", "name": "[Stop 5]", "lat": 14.5420, "lng": 121.0520, "seq": 5 },
-    { "stop_id": "s6", "route_id": "demo-route", "name": "[Stop 6]", "lat": 14.5375, "lng": 121.0530, "seq": 6 }
+    { "stop_id": "s1", "route_id": "demo-route", "name": "The Globe Tower", "lat": 14.5533, "lng": 121.0501, "seq": 1 },
+    { "stop_id": "s2", "route_id": "demo-route", "name": "Uptown Parade",   "lat": 14.5574, "lng": 121.0540, "seq": 2 },
+    { "stop_id": "s3", "route_id": "demo-route", "name": "Uptown Mall",     "lat": 14.5569, "lng": 121.0536, "seq": 3 },
+    { "stop_id": "s4", "route_id": "demo-route", "name": "Avida 34th",      "lat": 14.5548, "lng": 121.0546, "seq": 4 },
+    { "stop_id": "s5", "route_id": "demo-route", "name": "BGC Turf",        "lat": 14.5541, "lng": 121.0521, "seq": 5 },
+    { "stop_id": "s6", "route_id": "demo-route", "name": "HSBC",            "lat": 14.5536, "lng": 121.0480, "seq": 6 },
+    { "stop_id": "s7", "route_id": "demo-route", "name": "EDSA Ayala",      "lat": 14.5493, "lng": 121.0290, "seq": 7 }
   ]
 }
