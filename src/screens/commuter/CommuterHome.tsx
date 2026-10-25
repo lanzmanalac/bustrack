@@ -21,7 +21,7 @@ import { StateSwitcher } from './StateSwitcher';
 import { StopPicker } from './StopPicker';
 import { type TripBarProps } from './TripBar';
 import { TripCard } from './TripCard';
-import { resolveTripStub } from './tripStub';
+import { resolveTripAi } from './tripAi';
 import { explainFor, heroFor, mapFor, metaFor, planBFor, tripFor, type ViewContext } from './view';
 
 const ROUTE = route as Route;
@@ -198,7 +198,7 @@ export function CommuterHome() {
   const submit = async (text: string) => {
     setPending(true);
     try {
-      setIntent(await resolveTripStub(text, ROUTE.stops));
+      setIntent(await resolveTripAi(text, ROUTE.stops));
     } finally {
       setPending(false);
     }
