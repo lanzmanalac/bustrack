@@ -40,7 +40,7 @@ import {
   scrubCoordinates,
   type DecideRequest,
   type DecideResponse,
-} from '../src/logic/decide';
+} from '../src/logic/decide.js';
 
 /** Structural stand-in for @vercel/node's NextApiRequest (Rule 5). */
 interface HttpIn {
