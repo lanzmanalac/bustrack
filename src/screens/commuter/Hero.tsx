@@ -1,5 +1,6 @@
 import { CalendarClock, Radio } from 'lucide-react';
 import { RollingNumber } from '../../ui/RollingNumber';
+import { PigeonMascot } from './mascot/PigeonMascot';
 import type { ChipModel, HeroModel } from './view';
 
 const sentence = (s: string) => (/[.!?]$/.test(s) ? s : `${s}.`);
@@ -23,23 +24,26 @@ export function Hero({ model, fresh, onExplain }: { model: HeroModel; fresh: Chi
         onClick={onExplain}
         aria-label={`${sentence(model.announce)} ${extra ? `${sentence(extra)} ` : ''}How we worked this out`}
         data-low-confidence={model.lowConfidence}
-        className="hero-button mx-2 mt-3 block w-[calc(100%-1rem)] rounded-[20px] px-3 py-2 text-left"
+        className="hero-button hero-heading mx-2 mt-3 w-[calc(100%-1rem)] rounded-[20px] px-3 py-2 text-left"
       >
-        {isNumber ? (
-          <div className="flex flex-wrap items-baseline gap-x-2 text-[min(12vw,3rem)] leading-tight font-semibold tracking-tight">
-            <span>Leave in</span>
-            <span className="inline-flex items-baseline">
-              {model.approx && <span>~</span>}
-              <RollingNumber value={model.minutes!} />
-            </span>
-            <span>min</span>
-            {model.suffix && <span className="text-[0.45em] font-medium">{model.suffix}</span>}
-          </div>
-        ) : isTakeover ? (
-          <div className="text-[min(10vw,2.5rem)] leading-tight font-semibold tracking-tight text-balance">{model.headline}</div>
-        ) : (
-          <div className="text-[min(9vw,2.25rem)] leading-tight font-semibold tracking-tight text-balance">{model.headline}</div>
-        )}
+        <div className="hero-heading-copy">
+          {isNumber ? (
+            <div className="flex flex-wrap items-baseline gap-x-2 text-[min(12vw,3rem)] leading-tight font-semibold tracking-tight">
+              <span>Leave in</span>
+              <span className="inline-flex items-baseline">
+                {model.approx && <span>~</span>}
+                <RollingNumber value={model.minutes!} />
+              </span>
+              <span>min</span>
+              {model.suffix && <span className="text-[0.45em] font-medium">{model.suffix}</span>}
+            </div>
+          ) : isTakeover ? (
+            <div className="text-[min(10vw,2.5rem)] leading-tight font-semibold tracking-tight text-balance">{model.headline}</div>
+          ) : (
+            <div className="text-[min(9vw,2.25rem)] leading-tight font-semibold tracking-tight text-balance">{model.headline}</div>
+          )}
+        </div>
+        <PigeonMascot state={model.state} staleData={model.lowConfidence || fresh?.tone === 'muted'} />
       </button>
 
       <ul className="flex flex-wrap gap-1.5 px-5 pt-2 pb-8 text-sm font-semibold">

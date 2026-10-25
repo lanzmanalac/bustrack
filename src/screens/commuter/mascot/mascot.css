@@ -1,0 +1,58 @@
+.hero-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(96px, 30vw, 128px);
+  align-items: center;
+  gap: 8px;
+  min-height: 128px;
+}
+
+.hero-heading-copy {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pigeon-mascot {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  pointer-events: none;
+  /* The original paper background blends into every urgency color. */
+  mix-blend-mode: multiply;
+}
+
+.pigeon-strip {
+  display: block;
+  width: 400%;
+  max-width: none;
+  height: 100%;
+  filter: contrast(1.12);
+}
+
+.pigeon-strip[data-animate='true'] {
+  animation: pigeon-poses 4.8s step-end both;
+}
+
+/* Play once on a state change, then hold the last expression. */
+@keyframes pigeon-poses {
+  0% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-25%);
+  }
+  50% {
+    transform: translateX(-50%);
+  }
+  75%,
+  100% {
+    transform: translateX(-75%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pigeon-strip[data-animate='true'] {
+    animation: none;
+  }
+}
+
