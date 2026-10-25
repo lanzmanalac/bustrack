@@ -218,13 +218,15 @@ function Overlay({
   const faces = bus ? busFaces(scene, bus.world, bus.heading) : null;
   const user = model.userIdx >= 0 ? scene.stops[model.userIdx] : null;
 
-  type Label = { x: number; y: number; text: string; strong: boolean; anchor: 'start' | 'middle' | 'end'; dark?: boolean };
+  type Label = { x: number; y: number; text: string; strong: boolean; anchor: 'start' | 'middle' | 'end'; dark?: boolean; minor?: boolean };
+  type Box = Pick<Label, 'x' | 'y' | 'anchor'> & { text?: string; minor?: boolean };
   const labels: Label[] = [];
-  const span = (l: Pick<Label, 'x' | 'anchor'>) => {
-    const w = 110;
+  // Minor stop labels are measured by their text; the main labels keep the original 110px box.
+  const span = (l: Box) => {
+    const w = l.minor && l.text ? l.text.length * 6.2 + 14 : 110;
     return l.anchor === 'start' ? [l.x, l.x + w] : l.anchor === 'end' ? [l.x - w, l.x] : [l.x - w / 2, l.x + w / 2];
   };
-  const clashes = (l: Pick<Label, 'x' | 'y' | 'anchor'>, others: Pick<Label, 'x' | 'y' | 'anchor'>[]) =>
+  const clashes = (l: Box, others: Box[]) =>
     others.some((o) => {
       const [a0, a1] = span(l);
       const [b0, b1] = span(o);
@@ -250,15 +252,44 @@ function Overlay({
   }
   // The stop's name goes on the far side from "You", so the walk leg stays readable.
   if (user) place(user.screen, names[model.userIdx], true, 4, !scene.you || scene.you.screen.x < user.screen.x);
+  const visible = (p: { x: number; y: number }) =>
+    p.x > 24 && p.x < scene.width - 24 && p.y > INSET_TOP + 16 && p.y < scene.height - insetBottom - 16;
   if (end > 0 && end !== model.userIdx) {
-    const visible = (p: { x: number; y: number }) =>
-      p.x > 24 && p.x < scene.width - 24 && p.y > INSET_TOP + 16 && p.y < scene.height - insetBottom - 16;
     const endStop = scene.stops[end].screen;
     // A far terminus (EDSA Ayala, 2 km out) is off the map: label where the route leaves the frame.
     const exit = visible(endStop) ? null : [...scene.slice(0, end)].reverse().find(visible);
     if (!exit) place(endStop, names[end]);
     else place(exit, `To ${names[end]}`, false, 4, exit.x < scene.width / 2);
   }
+
+  // Every other visible stop gets a small label. Stops that sit almost on top of each other on
+  // screen share one label (Uptown Parade and Uptown Mall are only 70 m apart: "Uptown Parade · Mall").
+  const placeMinor = (p: { x: number; y: number }, text: string) => {
+    const options: Label[] = [
+      { x: p.x + 12, y: p.y + 4, text, strong: false, anchor: 'start', minor: true },
+      { x: p.x - 12, y: p.y + 4, text, strong: false, anchor: 'end', minor: true },
+      { x: p.x, y: p.y - 14, text, strong: false, anchor: 'middle', minor: true },
+      { x: p.x, y: p.y + 22, text, strong: false, anchor: 'middle', minor: true },
+    ];
+    const fits = (l: Label) => {
+      const [a0, a1] = span(l);
+      return a0 > 4 && a1 < scene.width - 4;
+    };
+    const spot = options.find((l) => fits(l) && !clashes(l, [...labels, ...reserved]));
+    if (spot) labels.push(spot);
+  };
+  const joinNames = (list: string[]) => {
+    const first = list[0].split(' ')[0];
+    return list.map((n, k) => (k > 0 && n.startsWith(`${first} `) ? n.slice(first.length + 1) : n)).join(' · ');
+  };
+  const groups: { p: { x: number; y: number }; names: string[] }[] = [];
+  scene.stops.forEach((s, i) => {
+    if (i === model.userIdx || i === end || !visible(s.screen)) return;
+    const last = groups[groups.length - 1];
+    if (last && Math.hypot(s.screen.x - last.p.x, s.screen.y - last.p.y) < 30) last.names.push(names[i]);
+    else groups.push({ p: s.screen, names: [names[i]] });
+  });
+  for (const g of groups) placeMinor(g.p, joinNames(g.names));
 
   return (
     <g>
@@ -354,7 +385,8 @@ function Overlay({
       )}
 
       {labels.map((l) => {
-        const w = l.text.length * (l.strong ? 7.4 : 6.8) + 18;
+        const w = l.minor ? l.text.length * 6.2 + 14 : l.text.length * (l.strong ? 7.4 : 6.8) + 18;
+        const h = l.minor ? 19 : 23;
         const x0 = l.anchor === 'start' ? l.x - 4 : l.anchor === 'end' ? l.x - w + 4 : l.x - w / 2;
         return (
           <g
@@ -363,8 +395,14 @@ function Overlay({
             data-dark={l.dark ?? false}
             transform={`translate(${l.x.toFixed(1)} ${l.y.toFixed(1)}) scale(${uiScale.toFixed(3)}) translate(${(-l.x).toFixed(1)} ${(-l.y).toFixed(1)})`}
           >
-            <rect x={x0} y={l.y - 15} width={w} height={23} rx={11.5} />
-            <text x={x0 + w / 2} y={l.y + 0.5} textAnchor="middle" className={`map-label ${l.strong ? 'map-label--strong' : ''}`}>
+            <rect x={x0} y={l.y - (l.minor ? 13 : 15)} width={w} height={h} rx={h / 2} />
+            <text
+              x={x0 + w / 2}
+              y={l.y + (l.minor ? 0 : 0.5)}
+              textAnchor="middle"
+              className={`map-label ${l.strong ? 'map-label--strong' : ''}`}
+              style={l.minor ? { fontSize: 11 } : undefined}
+            >
               {l.text}
             </text>
           </g>

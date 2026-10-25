@@ -253,7 +253,16 @@ export function heroFor(plan: LeavePlan, ctx: ViewContext): HeroModel {
       };
     }
     case 'missed':
-      return { ...base, headline: 'The next bus is a better fit', sub: `Next in ~${nextBus} min`, announce: `The next bus is a better fit. It comes in about ${nextBus} minutes` };
+      // Two different situations: the bus already went by, or it is still coming but arrives before you can walk there.
+      if (plan.phase === 'passed') {
+        return { ...base, headline: 'This bus already passed', sub: `Next in ~${nextBus} min`, announce: `This bus already passed ${stop}. Next bus in about ${nextBus} minutes` };
+      }
+      return {
+        ...base,
+        headline: 'Too close to catch this one',
+        sub: `It reaches ${stop} before you can · next in ~${nextBus} min`,
+        announce: `Too close to catch this one. It reaches ${stop} before you can walk there. Next bus in about ${nextBus} minutes`,
+      };
     case 'full':
       return {
         ...base,
@@ -422,6 +431,15 @@ export function explainFor(plan: LeavePlan, ctx: ViewContext): ExplainModel {
         source,
       };
     case 'missed':
+      if (plan.phase === 'passed') {
+        return {
+          title: 'Why this bus is gone',
+          rows: null,
+          result: null,
+          note: `This bus already went past ${stop}. Next bus in ~${nextBus} min, based on the usual gap between buses.`,
+          source,
+        };
+      }
       return {
         title: 'Why you’ll miss it',
         rows: null,
@@ -550,12 +568,14 @@ export function planBFor(plan: LeavePlan): PlanBModel | null {
   const byAi = p.decided_by === 'decisions_api' || p.decided_by === 'responses_api';
   const aiBadge = byAi ? (p.confidence != null ? `AI pick · ${Math.round(p.confidence * 100)}% sure` : 'AI pick') : null;
   const kinds: PlanB['kind'][] = ['wait', 'next_bus', 'walk', 'ride_hail'];
+  // "Missed" also covers a bus that hasn't passed yet but arrives before you can walk to the stop.
+  const tooClose = p.reason === 'missed' && plan.phase !== 'passed';
   return {
     kind: p.kind,
     title: PLAN_B_LABEL[p.kind],
     detail,
-    reason: PLAN_B_REASON[p.reason],
-    why: p.why ?? PLAN_B_DEFAULT_WHY[p.reason],
+    reason: tooClose ? 'Too close to catch' : PLAN_B_REASON[p.reason],
+    why: p.why ?? (tooClose ? 'It reaches your stop before you can walk there.' : PLAN_B_DEFAULT_WHY[p.reason]),
     aiBadge,
     alternatives: kinds.filter((k) => k !== p.kind),
   };
