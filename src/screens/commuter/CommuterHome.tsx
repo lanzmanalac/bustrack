@@ -11,20 +11,22 @@ import { useLeavePlan } from '../../logic/useLeavePlan';
 import { Toast } from '../../ui/Toast';
 import { ExplainSheet } from './ExplainSheet';
 import { useFixturePlan } from './fixturePlan';
-import { Hero, HeroMeta } from './Hero';
+import { BrandRow, TripDropdown } from './Header';
+import { Hero } from './Hero';
 import { useElementHeight, useNow, useOnline } from './hooks';
 import { RouteMap3D } from './map/RouteMap3D';
 import { PlanBCard } from './PlanBCard';
 import { StateSwitcher } from './StateSwitcher';
 import { StopPicker } from './StopPicker';
-import { TripBar, type TripBarProps } from './TripBar';
+import { type TripBarProps } from './TripBar';
+import { TripCard } from './TripCard';
 import { resolveTripStub } from './tripStub';
-import { explainFor, heroFor, mapFor, metaFor, planBFor, type ViewContext } from './view';
+import { explainFor, heroFor, mapFor, metaFor, planBFor, tripFor, type ViewContext } from './view';
 
 const ROUTE = route as Route;
 const TOAST_MS = 4000;
-/** The trip bar overlaps the bottom of the map by 88px; the route stays clear of it. */
-const MAP_INSET_BOTTOM = 104;
+/** Space between the floating card and the route drawn above it. */
+const OVERLAY_GAP = 8;
 /** Height the route itself always gets, even with Plan B open. */
 const MAP_MIN_ROUTE = 180;
 
@@ -75,6 +77,7 @@ export function CommuterScreen({ plan, buses, forceOffline, onPickStop, trip, to
   const meta = metaFor(plan, ctx);
   const map = mapFor(plan, ctx, ROUTE.stops, buses);
   const explain = explainFor(plan, ctx);
+  const tripCard = tripFor(plan, ctx, realNowMs());
   const planB = offline ? null : planBFor(plan);
   const toast = useLiveTapToast(plan.phase, plan.bus_at_stop?.name ?? null);
   const takeover = hero.state === 'leave_now';
@@ -90,31 +93,32 @@ export function CommuterScreen({ plan, buses, forceOffline, onPickStop, trip, to
         <div data-tone={hero.tone} className="tone-backdrop mx-auto flex min-h-dvh w-full max-w-[430px] flex-col">
           {top}
           <section className="tone-surface">
-            <header className="flex items-baseline justify-between gap-3 px-5 pt-4 pb-1">
-              <span className="text-[0.9375rem] font-bold">BGC Bus</span>
-              <span className="truncate text-[0.8125rem] font-medium text-[var(--tone-muted)]">
-                {ROUTE.name} · {ROUTE.direction}
-              </span>
-            </header>
-            <Hero model={hero} onExplain={() => setExplainOpen(true)} />
-            {meta && <HeroMeta model={meta} />}
+            <BrandRow label={`BGC Bus · ${ROUTE.name.replace(/^BGC Bus\s*/, '')}`} />
+            <TripDropdown stops={ROUTE.stops} trip={trip} />
+            <Hero model={hero} fresh={meta?.fresh ?? null} onExplain={() => setExplainOpen(true)} />
           </section>
 
-          <main className="relative -mt-5 -mb-[88px] flex flex-1 overflow-hidden rounded-t-[26px] bg-[#f3f4f0]" style={{ minHeight: MAP_MIN_ROUTE + MAP_INSET_BOTTOM + overlayHeight }}>
-            <RouteMap3D stops={ROUTE.stops} model={map} pulse={takeover} insetBottom={MAP_INSET_BOTTOM + overlayHeight} />
-            {/* Plan B and the stop picker float over the lower map, just above the trip bar. */}
-            <div ref={overlayRef} className="absolute inset-x-3 z-20 bottom-[76px]">
-              <AnimatePresence>{planB && <PlanBCard key={`${planB.kind}-${planB.reason}`} model={planB} />}</AnimatePresence>
-              {hero.state === 'location_off' && (
-                <section className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4 shadow-sm">
-                  <h2 className="mb-3 text-[1.0625rem] font-bold">Which stop do you walk to?</h2>
-                  <StopPicker stops={ROUTE.stops} onPick={onPickStop} label="Pick your stop" />
-                </section>
-              )}
+          <main
+            className="relative -mt-5 flex flex-1 overflow-hidden rounded-t-[26px] bg-[#f3f4f0]"
+            style={{ minHeight: MAP_MIN_ROUTE + overlayHeight + OVERLAY_GAP }}
+          >
+            <RouteMap3D stops={ROUTE.stops} model={map} pulse={takeover} insetBottom={overlayHeight + OVERLAY_GAP} />
+            {/* One card floats over the lower map: the stop picker, Plan B when needed, or the trip timeline. */}
+            <div ref={overlayRef} className="absolute inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+12px)] z-20">
+              <AnimatePresence mode="wait">
+                {hero.state === 'location_off' ? (
+                  <section key="pick" className="rounded-[24px] border border-[var(--line)] bg-[var(--surface)] p-4 shadow-lg">
+                    <h2 className="mb-3 text-[1.0625rem] font-bold">Which stop do you walk to?</h2>
+                    <StopPicker stops={ROUTE.stops} onPick={onPickStop} label="Pick your stop" />
+                  </section>
+                ) : planB ? (
+                  <PlanBCard key={`${planB.kind}-${planB.reason}`} model={planB} />
+                ) : (
+                  <TripCard key="trip" model={tripCard} onExplain={() => setExplainOpen(true)} />
+                )}
+              </AnimatePresence>
             </div>
           </main>
-
-          <TripBar stops={ROUTE.stops} {...trip} />
         </div>
 
         <ExplainSheet open={explainOpen} model={explain} onClose={() => setExplainOpen(false)} />

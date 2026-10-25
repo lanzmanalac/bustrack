@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { FIXTURES } from '../../contracts/fixtures';
 import type { BusStatus, LeavePlan, Stop } from '../../contracts/types';
 import route from '../../data/route.json';
-import { breakdown, crowdChip, explainFor, freshnessChip, heroFor, mapFor, metaFor, planBFor, viewStateFor, type ViewContext } from './view';
+import { breakdown, crowdChip, explainFor, freshnessChip, heroFor, mapFor, metaFor, planBFor, tripFor, viewStateFor, type ViewContext } from './view';
 
 const stopName = (seq: number) => route.stops[seq - 1].name;
 
@@ -72,6 +72,19 @@ describe('heroFor copy', () => {
     const noSignal = heroFor(FIXTURES.no_signal, ctx());
     expect(noSignal.headline).toBe('A bus comes every ~10 min');
     expect(noSignal.lowConfidence).toBe(true);
+  });
+
+  it('trip card: leave, reach the stop, bus arrives, as Manila clock times that add up', () => {
+    const now = Date.parse('2026-10-25T10:00:30Z'); // 6:00 PM in Manila
+    const t = tripFor(FIXTURES.relax, ctx(), now); // leave in 12, walk 4, buffer 1
+    expect(t.steps).toEqual([
+      { time: '6:12 PM', label: 'Walk 4 min' },
+      { time: '6:16 PM', label: 'At your stop' },
+      { time: '6:17 PM', label: 'Bus arrives' },
+    ]);
+    expect([t.stop, t.crowd]).toEqual([stopName(4), 'Seats likely']);
+    expect(tripFor(FIXTURES.standby, ctx(), now).steps?.[2].label).toBe('If bus leaves now');
+    expect(tripFor(FIXTURES.missed, ctx(), now).steps).toBeNull();
   });
 
   it('a picked stop with no GPS has no walk time, so the copy does not invent one', () => {

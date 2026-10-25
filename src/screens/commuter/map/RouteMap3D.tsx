@@ -16,7 +16,7 @@ export interface RouteMap3DProps {
   insetBottom: number;
 }
 
-const INSET_TOP = 40;
+const INSET_TOP = 20;
 const BUS = { length: 10.5, width: 4.4, height: 4, lift: 0.4 };
 const ROUTE_INK = '#23303f';
 

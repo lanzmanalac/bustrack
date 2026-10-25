@@ -15,6 +15,8 @@ export interface TripBarProps {
   onPickStop: (stop: Stop) => void;
   onSetArriveBy: (hhmm: string | null) => void;
   onClear: () => void;
+  /** Inside the header dropdown: no sticky footer, no privacy line, input focused. */
+  inline?: boolean;
 }
 
 function formatClock(hhmm: string): string {
@@ -44,7 +46,7 @@ function EditChip({ icon, children, onClick, label }: { icon: ReactNode; childre
   );
 }
 
-export function TripBar({ stops, intent, verdict, pending, onSubmit, onPickStop, onSetArriveBy, onClear }: TripBarProps) {
+export function TripBar({ stops, intent, verdict, pending, onSubmit, onPickStop, onSetArriveBy, onClear, inline = false }: TripBarProps) {
   const inputId = useId();
   const [text, setText] = useState('');
   const [editing, setEditing] = useState<'stop' | 'time' | null>(null);
@@ -67,7 +69,7 @@ export function TripBar({ stops, intent, verdict, pending, onSubmit, onPickStop,
   };
 
   return (
-    <div className="trip-bar-fade sticky bottom-0 z-30 px-4 pt-6 pb-[calc(env(safe-area-inset-bottom)+12px)]">
+    <div className={inline ? '' : 'trip-bar-fade sticky bottom-0 z-30 px-4 pt-6 pb-[calc(env(safe-area-inset-bottom)+12px)]'}>
       {intent && (
         <section aria-label="Your trip" className="mb-2 rounded-[22px] border border-[var(--line)] bg-[var(--surface)] p-3 shadow-sm">
           {confident ? (
@@ -173,7 +175,8 @@ export function TripBar({ stops, intent, verdict, pending, onSubmit, onPickStop,
           placeholder="Where to? e.g. EDSA Ayala by 7"
           autoComplete="off"
           enterKeyHint="go"
-          className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-[#667085]"
+          autoFocus={inline}
+          className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-[#667085] focus-visible:outline-none"
         />
         <button
           type="submit"
@@ -184,10 +187,12 @@ export function TripBar({ stops, intent, verdict, pending, onSubmit, onPickStop,
           {pending ? <Loader2 size={18} className="animate-spin" aria-hidden /> : <ArrowUp size={18} aria-hidden />}
         </button>
       </form>
-      <p className="mt-2 flex items-center justify-center gap-1.5 text-[0.8125rem] font-semibold text-[var(--ink-muted)]">
-        <Lock size={14} aria-hidden />
-        Your location stays on this phone
-      </p>
+      {!inline && (
+        <p className="mt-2 flex items-center justify-center gap-1.5 text-[0.8125rem] font-semibold text-[var(--ink-muted)]">
+          <Lock size={14} aria-hidden />
+          Your location stays on this phone
+        </p>
+      )}
     </div>
   );
 }

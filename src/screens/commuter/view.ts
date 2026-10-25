@@ -332,6 +332,54 @@ export function metaFor(plan: LeavePlan, ctx: ViewContext): MetaModel | null {
   return { fresh: freshnessChip(plan, ctx.realElapsedSec), crowd: state === 'missed' ? null : crowdChip(plan) };
 }
 
+export interface TripStep {
+  time: string;
+  label: string;
+}
+
+export interface TripModel {
+  /** Leave → at your stop → bus arrives; null when there is no leave time to plan around. */
+  steps: TripStep[] | null;
+  leaveInSec: number | null;
+  stop: string | null;
+  /** Crowd level only ("Seats likely"), never a count. */
+  crowd: string | null;
+}
+
+/** "6:12 PM" in Manila time, whatever the phone's time zone. */
+function manilaClock(ms: number): string {
+  const d = new Date(ms + 8 * 3600_000);
+  const h = d.getUTCHours();
+  return `${h % 12 === 0 ? 12 : h % 12}:${String(d.getUTCMinutes()).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+}
+
+const STEP_STATES: ViewState[] = ['relax', 'get_ready', 'leave_now', 'standby'];
+
+export function tripFor(plan: LeavePlan, ctx: ViewContext, nowMs: number): TripModel {
+  const state = viewStateFor(plan, ctx);
+  const b = breakdown(plan, ctx);
+  const crowd = metaFor(plan, ctx)?.crowd ?? null;
+  // Built from the same rounded minutes as the Explain sheet, so the times always add up.
+  const leaveAt = b ? nowMs + b.leaveMin * 60_000 : 0;
+  const steps =
+    b && STEP_STATES.includes(state)
+      ? [
+          { time: manilaClock(leaveAt), label: b.walkMin ? `Walk ${b.walkMin} min` : 'Leave' },
+          { time: manilaClock(leaveAt + b.walkMin * 60_000), label: 'At your stop' },
+          {
+            time: manilaClock(leaveAt + (b.walkMin + b.bufferMin) * 60_000),
+            label: state === 'standby' ? 'If bus leaves now' : 'Bus arrives',
+          },
+        ]
+      : null;
+  return {
+    steps,
+    leaveInSec: b?.leaveIn ?? null,
+    stop: plan.user_stop?.name ?? null,
+    crowd: crowd && crowd.tone !== 'muted' ? crowd.label.split(' · ')[0] : null,
+  };
+}
+
 function sourceLine(plan: LeavePlan, realElapsedSec: number): string {
   if (plan.source === 'schedule' || plan.data_age_sec == null) return 'Schedule estimate · no live bus data';
   const updated = `updated ${ago(plan.data_age_sec + realElapsedSec)}`;
