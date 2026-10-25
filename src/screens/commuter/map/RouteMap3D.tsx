@@ -440,6 +440,9 @@ function focalZoom(v: ViewBox, baseW: number, baseH: number, factor: number, fx:
 function useMapViewBox(ref: RefObject<HTMLElement | null>, baseW: number, baseH: number) {
   const [view, setView] = useState<ViewBox>(() => fullView(baseW, baseH));
   const viewRef = useRef(view);
+  // Follow mode: while zoomed in, the view keeps the bus in frame. Any manual drag,
+  // pinch or wheel hands control to the user; Reset or "Follow bus" hands it back.
+  const [follow, setFollow] = useState(true);
   const sizeKey = useRef('');
   useEffect(() => {
     viewRef.current = view;
@@ -488,7 +491,10 @@ function useMapViewBox(ref: RefObject<HTMLElement | null>, baseW: number, baseH:
       } else if (pointers.size === 1) {
         pan = { px: e.clientX, py: e.clientY, view: v };
         const now = Date.now();
-        if (now - lastTap < 280) setView(fullView(baseW, baseH));
+        if (now - lastTap < 280) {
+          setView(fullView(baseW, baseH));
+          setFollow(true);
+        }
         lastTap = now;
       }
     };
@@ -500,11 +506,13 @@ function useMapViewBox(ref: RefObject<HTMLElement | null>, baseW: number, baseH:
         const [a, b] = [...pointers.values()];
         const dist = Math.hypot(a.x - b.x, a.y - b.y);
         const factor = dist / Math.max(1, pinch.dist);
+        setFollow(false);
         setView(focalZoom(pinch.view, baseW, baseH, factor, pinch.midFx, pinch.midFy));
       } else if (pan && pointers.size === 1 && pan.view.w < baseW - 2) {
         const r = rectOf();
         const dx = ((e.clientX - pan.px) / r.width) * pan.view.w;
         const dy = ((e.clientY - pan.py) / r.height) * pan.view.h;
+        if (Math.abs(e.clientX - pan.px) + Math.abs(e.clientY - pan.py) > 6) setFollow(false);
         setView(clampView({ ...pan.view, x: pan.view.x - dx, y: pan.view.y - dy }, baseW, baseH));
       }
     };
@@ -524,6 +532,7 @@ function useMapViewBox(ref: RefObject<HTMLElement | null>, baseW: number, baseH:
       const v = viewRef.current;
       const { fx, fy } = toMap(e.clientX, e.clientY, v);
       const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
+      setFollow(false);
       setView(focalZoom(v, baseW, baseH, factor, fx, fy));
     };
 
@@ -566,16 +575,31 @@ function useMapViewBox(ref: RefObject<HTMLElement | null>, baseW: number, baseH:
 
   const resetView = useCallback(() => {
     if (baseW > 0 && baseH > 0) setView(fullView(baseW, baseH));
+    setFollow(true);
   }, [baseW, baseH]);
 
-  return { view, zoom, zoomBy, resetView };
+  /** Centre the view on a point (SVG coordinates), keeping the current zoom. No-op when zoomed out. */
+  const centerOn = useCallback(
+    (p: { x: number; y: number }) => {
+      if (baseW <= 0 || baseH <= 0) return;
+      const v = viewRef.current;
+      if (v.w >= baseW - 2) return;
+      // Sit the bus a little above centre, clear of the bottom sheet.
+      const next = clampView({ ...v, x: p.x - v.w / 2, y: p.y - v.h * 0.42 }, baseW, baseH);
+      if (Math.abs(next.x - v.x) < 0.05 && Math.abs(next.y - v.y) < 0.05) return;
+      setView(next);
+    },
+    [baseW, baseH],
+  );
+
+  return { view, zoom, zoomBy, resetView, follow, setFollow, centerOn };
 }
 
 export function RouteMap3D({ stops, model, pulse, insetBottom }: RouteMap3DProps) {
   const [ref, size] = useSize<HTMLDivElement>();
   const baseW = size?.width ?? 0;
   const baseH = size?.height ?? 0;
-  const { view, zoom, zoomBy, resetView } = useMapViewBox(ref, baseW, baseH);
+  const { view, zoom, zoomBy, resetView, follow, setFollow, centerOn } = useMapViewBox(ref, baseW, baseH);
   const ordered = useMemo(() => [...stops].sort((a, b) => a.seq - b.seq), [stops]);
   const names = useMemo(() => ordered.map((s) => s.name), [ordered]);
   const scene = useMemo(
@@ -590,6 +614,17 @@ export function RouteMap3D({ stops, model, pulse, insetBottom }: RouteMap3DProps
         : null,
     [ordered, size, insetBottom, model.userIdx],
   );
+
+  // Pan with the bus: glide the view the same way the bus icon glides, so they move together.
+  const glidePos = useGlide(model.busPos);
+  const busPoint = useMemo(() => {
+    if (!scene || glidePos == null) return null;
+    const p = scene.project({ ...scene.pointAt(glidePos).world, z: 0 });
+    return { x: p.x, y: p.y };
+  }, [scene, glidePos]);
+  useEffect(() => {
+    if (follow && busPoint && zoom > 1.02) centerOn(busPoint);
+  }, [follow, busPoint, zoom, centerOn]);
 
   return (
     <figure
@@ -632,6 +667,19 @@ export function RouteMap3D({ stops, model, pulse, insetBottom }: RouteMap3DProps
         >
           <Minus size={20} aria-hidden />
         </button>
+        {zoom > 1.05 && !follow && busPoint && (
+          <button
+            type="button"
+            aria-label="Follow the bus"
+            className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-xs font-semibold text-[var(--ink)] shadow-md"
+            onClick={() => {
+              setFollow(true);
+              centerOn(busPoint);
+            }}
+          >
+            Follow bus
+          </button>
+        )}
         {zoom > 1.05 && (
           <button
             type="button"
