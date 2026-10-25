@@ -27,17 +27,30 @@ const VIEW = { width: 390, height: 480, insetTop: 24, insetBottom: 96 };
 
 describe('buildScene', () => {
   it.each([
-    ['placeholder route', route.stops as Stop[], 3],
+    ['route.json', route.stops as Stop[], 3],
     ['BGC North route', NORTH, 3],
-  ])('%s: every stop and "You" land inside the visible map area', (_, stops, userIdx) => {
+  ])('%s: every BGC stop and "You" land inside the visible map area', (_, stops, userIdx) => {
     const scene = buildScene(stops, { ...VIEW, userIdx });
-    const points = [...scene.stops.map((s) => s.screen), scene.you!.screen];
+    // EDSA Ayala is 2 km out; the route is allowed to run off the map toward it.
+    const points = [...scene.stops.slice(0, -1).map((s) => s.screen), scene.you!.screen];
     for (const p of points) {
       expect(p.x).toBeGreaterThanOrEqual(0);
       expect(p.x).toBeLessThanOrEqual(VIEW.width);
       expect(p.y).toBeGreaterThanOrEqual(VIEW.insetTop);
       expect(p.y).toBeLessThanOrEqual(VIEW.height - VIEW.insetBottom);
     }
+  });
+
+  it('follows the real streets when the stops match the baked map', () => {
+    const scene = buildScene(route.stops as Stop[], { ...VIEW, userIdx: 3 });
+    expect(scene.slice(0, 1).length).toBeGreaterThan(2);
+    expect(scene.city.length).toBeGreaterThan(100);
+  });
+
+  it('falls back to straight lines for stops the map was not baked for', () => {
+    const moved = NORTH.map((s) => ({ ...s, lat: s.lat + 0.002 }));
+    const scene = buildScene(moved, { ...VIEW, userIdx: 3 });
+    expect(scene.slice(0, 1)).toHaveLength(2);
   });
 
   it('keeps a short 70 m gap visible next to a 2 km leg', () => {

@@ -16,8 +16,9 @@ export interface RouteMap3DProps {
   insetBottom: number;
 }
 
-const INSET_TOP = 20;
-const BUS = { length: 10.5, width: 4.4, height: 4, lift: 0.4 };
+const INSET_TOP = 34;
+/** In screen pixels near the route; the scene converts them to world metres. */
+const BUS = { length: 24, width: 10, height: 8.5, lift: 0.8 };
 const ROUTE_INK = '#23303f';
 
 function useSize<T extends HTMLElement>() {
@@ -68,36 +69,67 @@ const pts = (list: { x: number; y: number }[]) => list.map((p) => `${p.x.toFixed
 const City = memo(function City({ scene }: { scene: Scene }) {
   return (
     <g>
+      <rect width={scene.width} height={scene.height} fill="var(--map-land)" />
       {scene.ground.map((s, i) => (
         <polygon key={i} points={s.points} fill={s.fill} />
       ))}
-      <polyline points={scene.road} fill="none" stroke="#d3d8d0" strokeWidth={scene.roadWidth + 2} strokeLinejoin="round" strokeLinecap="round" />
-      <polyline points={scene.road} fill="none" stroke="#ffffff" strokeWidth={scene.roadWidth} strokeLinejoin="round" strokeLinecap="round" />
+      {scene.streets.map((s, i) => (
+        <polyline
+          key={`c${i}`}
+          points={s.points}
+          fill="none"
+          stroke={s.kind === 'walk' ? 'none' : '#d7dbcf'}
+          strokeWidth={s.width + 1.5}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+      ))}
+      {scene.streets.map((s, i) => (
+        <polyline
+          key={i}
+          points={s.points}
+          fill="none"
+          stroke={s.kind === 'walk' ? '#f6f4ec' : '#ffffff'}
+          strokeWidth={s.width}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+      ))}
+      {scene.streetLabels.map((l) => (
+        <text key={l.text} x={l.x} y={l.y} transform={`rotate(${l.angle.toFixed(1)} ${l.x.toFixed(1)} ${l.y.toFixed(1)})`} dy="0.35em" textAnchor="middle" className="map-street">
+          {l.text}
+        </text>
+      ))}
+      <g opacity={0.09}>
+        {scene.shadows.map((s, i) => (
+          <polygon key={i} points={s} fill="#1f3320" />
+        ))}
+      </g>
       {scene.city.map((item, i) =>
         'points' in item ? (
-          <polygon key={i} points={item.points} fill={item.fill} stroke={item.stroke} strokeWidth={0.75} strokeLinejoin="round" />
+          <polygon key={i} points={item.points} fill={item.fill} stroke={item.stroke} strokeWidth={0.6} strokeLinejoin="round" />
         ) : (
-          <circle key={i} cx={item.x} cy={item.y} r={item.r} fill={item.fill} />
+          <g key={i}>
+            <circle cx={item.x + item.r * 0.35} cy={item.y + item.r * 0.45} r={item.r} fill="rgb(31 51 32 / 0.16)" />
+            <circle cx={item.x} cy={item.y} r={item.r} fill={item.fill} />
+          </g>
         ),
+      )}
+      {scene.attribution && (
+        <text x={scene.width - 12} y={14} textAnchor="end" className="map-credit">
+          {scene.attribution}
+        </text>
       )}
     </g>
   );
 });
 
-function routeSlice(scene: Scene, from: number, to: number) {
-  if (to <= from) return [];
-  const out = [scene.project({ ...scene.pointAt(from).world, z: 0 })];
-  for (let i = Math.ceil(from); i < to; i++) if (i > from) out.push(scene.stops[i].screen);
-  out.push(scene.project({ ...scene.pointAt(to).world, z: 0 }));
-  return out;
-}
-
 function busFaces(scene: Scene, world: Vec2, heading: Vec2) {
   const n = { x: -heading.y, y: heading.x };
   const corner = (l: number, w: number, z: number): Vec3 => ({
-    x: world.x + heading.x * l + n.x * w,
-    y: world.y + heading.y * l + n.y * w,
-    z,
+    x: world.x + heading.x * l * scene.unit + n.x * w * scene.unit,
+    y: world.y + heading.y * l * scene.unit + n.y * w * scene.unit,
+    z: z * scene.unit,
   });
   const L = BUS.length / 2;
   const W = BUS.width / 2;
@@ -112,7 +144,7 @@ function busFaces(scene: Scene, world: Vec2, heading: Vec2) {
   const sides = foot.map(([l, w], e) => {
     const [l2, w2] = foot[(e + 1) % 4];
     const face = [corner(l, w, lo), corner(l2, w2, lo), corner(l2, w2, hi), corner(l, w, hi)].map(scene.project);
-    const win = [corner(l, w, lo + 1.7), corner(l2, w2, lo + 1.7), corner(l2, w2, hi - 0.5), corner(l, w, hi - 0.5)].map(scene.project);
+    const win = [corner(l, w, lo + 3.4), corner(l2, w2, lo + 3.4), corner(l2, w2, hi - 1.1), corner(l, w, hi - 1.1)].map(scene.project);
     const depth = face.reduce((s, p) => s + p.depth, 0) / 4;
     const area = face.reduce((s, p, i) => {
       const q = face[(i + 1) % 4];
@@ -126,24 +158,24 @@ function busFaces(scene: Scene, world: Vec2, heading: Vec2) {
 
 /** A fixed gap in pixels above the roof, so the label's halo never covers the bus at any zoom. */
 function busLabelAt(scene: Scene, world: Vec2) {
-  const roof = scene.project({ ...world, z: BUS.lift + BUS.height });
-  return { x: roof.x, y: roof.y - 12 - BUS.width * roof.scale * 0.3 };
+  const roof = scene.project({ ...world, z: (BUS.lift + BUS.height) * scene.unit });
+  return { x: roof.x, y: roof.y - 12 - BUS.width * 0.3 };
 }
 
 function ring(scene: Scene, world: Vec2, r: number) {
   return Array.from({ length: 28 }, (_, i) => {
     const a = (i / 28) * Math.PI * 2;
-    return scene.project({ x: world.x + Math.cos(a) * r, y: world.y + Math.sin(a) * r, z: 0 });
+    return scene.project({ x: world.x + Math.cos(a) * r * scene.unit, y: world.y + Math.sin(a) * r * scene.unit, z: 0 });
   });
 }
 
-function Overlay({ scene, names, model, pulse }: { scene: Scene; names: string[]; model: MapModel; pulse: boolean }) {
+function Overlay({ scene, names, model, pulse, insetBottom }: { scene: Scene; names: string[]; model: MapModel; pulse: boolean; insetBottom: number }) {
   const pos = useGlide(model.busPos);
   const end = scene.stops.length - 1;
   const hasBus = pos != null;
   const dashed = model.mode === 'none';
-  const behind = hasBus ? routeSlice(scene, 0, pos) : [];
-  const ahead = routeSlice(scene, hasBus ? pos : 0, end);
+  const behind = hasBus ? scene.slice(0, pos) : [];
+  const ahead = scene.slice(hasBus ? pos : 0, end);
   const bus = hasBus ? scene.pointAt(pos) : null;
   const faces = bus ? busFaces(scene, bus.world, bus.heading) : null;
   const user = model.userIdx >= 0 ? scene.stops[model.userIdx] : null;
@@ -180,12 +212,26 @@ function Overlay({ scene, names, model, pulse }: { scene: Scene; names: string[]
   }
   // The stop's name goes on the far side from "You", so the walk leg stays readable.
   if (user) place(user.screen, names[model.userIdx], true, 4, !scene.you || scene.you.screen.x < user.screen.x);
-  if (end > 0 && end !== model.userIdx) place(scene.stops[end].screen, names[end]);
+  if (end > 0 && end !== model.userIdx) {
+    const visible = (p: { x: number; y: number }) =>
+      p.x > 24 && p.x < scene.width - 24 && p.y > INSET_TOP + 16 && p.y < scene.height - insetBottom - 16;
+    const endStop = scene.stops[end].screen;
+    // A far terminus (EDSA Ayala, 2 km out) is off the map: label where the route leaves the frame.
+    const exit = visible(endStop) ? null : [...scene.slice(0, end)].reverse().find(visible);
+    if (!exit) place(endStop, names[end]);
+    else place(exit, `To ${names[end]}`, false, 4, exit.x < scene.width / 2);
+  }
 
   return (
     <g>
+      {[behind, ahead].map(
+        (line, i) =>
+          line.length > 1 && (
+            <polyline key={i} points={pts(line)} fill="none" stroke="#ffffff" strokeWidth={9} strokeLinecap="round" strokeLinejoin="round" />
+          ),
+      )}
       {behind.length > 1 && (
-        <polyline points={pts(behind)} fill="none" stroke="#c3cad3" strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" />
+        <polyline points={pts(behind)} fill="none" stroke="#b9c1ca" strokeWidth={5} strokeLinecap="round" strokeLinejoin="round" />
       )}
       {ahead.length > 1 && (
         <polyline
@@ -237,8 +283,8 @@ function Overlay({ scene, names, model, pulse }: { scene: Scene; names: string[]
 
       {bus && faces && (
         <g>
-          {pulse && <polygon points={pts(ring(scene, bus.world, 7))} fill="var(--map-route)" className="bus-pulse" />}
-          <polygon points={pts(ring(scene, bus.world, 6.5))} fill="rgb(16 24 40 / 0.08)" />
+          {pulse && <polygon points={pts(ring(scene, bus.world, 15))} fill="var(--map-route)" className="bus-pulse" />}
+          <polygon points={pts(ring(scene, bus.world, 14))} fill="rgb(16 24 40 / 0.1)" />
           {faces.sides.map((s, i) => (
             <g key={i}>
               <polygon points={pts(s.face)} fill="var(--map-route)" stroke="var(--map-route)" strokeWidth={0.5} strokeLinejoin="round" />
@@ -282,7 +328,7 @@ export function RouteMap3D({ stops, model, pulse, insetBottom }: RouteMap3DProps
         {scene && (
           <svg width={scene.width} height={scene.height} viewBox={`0 0 ${scene.width} ${scene.height}`} aria-hidden className="block">
             <City scene={scene} />
-            <Overlay scene={scene} names={names} model={model} pulse={pulse} />
+            <Overlay scene={scene} names={names} model={model} pulse={pulse} insetBottom={insetBottom} />
           </svg>
         )}
       </div>

@@ -101,6 +101,25 @@
   filter: saturate(0.3);
   opacity: 0.88;
 }
+.route-map {
+  --map-land: #e9ece4;
+}
+.map-street {
+  font-family: var(--font-ui);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  fill: #87917f;
+  paint-order: stroke;
+  stroke: #ffffff;
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+.map-credit {
+  font-family: var(--font-ui);
+  font-size: 8.5px;
+  fill: rgb(16 24 40 / 0.42);
+}
 .map-pill rect {
   fill: #ffffff;
   filter: drop-shadow(0 1px 2px rgb(16 24 40 / 0.18));
